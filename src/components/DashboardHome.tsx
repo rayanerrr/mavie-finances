@@ -47,6 +47,7 @@ type Suggestion = {
 
 type InsightsPayload = {
   total: number;
+  count: number;
   byCategory: CategoryTotal[];
   insights: {
     previousMonthName: string;
@@ -56,6 +57,7 @@ type InsightsPayload = {
     essentialPct: number;
     discretionaryPct: number;
     potentialSavings: number;
+    incomeTotal: number;
     suggestions: Suggestion[];
     evolution: {
       categoryNames: string[];
@@ -92,12 +94,17 @@ export function DashboardHome() {
     Array<{ subcategoryName: string | null; total: number }>
   >([]);
   const [error, setError] = useState<string | null>(null);
+  const [budget, setBudget] = useState<number | null>(null);
 
   const loadInsights = useCallback(async () => {
     try {
-      const res = await fetch(`/api/insights?month=${month}`);
+      const [res, budgetRes] = await Promise.all([fetch(`/api/insights?month=${month}`), fetch(`/api/budgets?month=${month}`)]);
       if (!res.ok) throw new Error("Impossible de charger le tableau de bord");
       setData(await res.json());
+      if (budgetRes.ok) {
+        const json = await budgetRes.json();
+        setBudget(json.budgets.reduce((sum: number, item: { amount: number }) => sum + Number(item.amount), 0) || null);
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -173,6 +180,8 @@ export function DashboardHome() {
 
   const deltaPct = data?.insights.deltaPct ?? null;
   const total = data?.total ?? 0;
+  const income = data?.insights.incomeTotal ?? 0;
+  const remaining = income > 0 ? income - total : budget !== null ? budget - total : null;
 
   return (
     <div className="dash">
@@ -204,13 +213,13 @@ export function DashboardHome() {
 
         <section className="hero">
           <p className="hero-label">Pour le mois de {monthTitle(month).toLowerCase()}</p>
-          <strong className="hero-value">Il te reste {formatMoneyShort(Math.max(0, 5000 - total))}</strong>
-          <p>Après tes dépenses suivies. Ton budget de référence est de {formatMoneyShort(5000)}.</p>
+          <strong className="hero-value">{remaining === null ? "Aucun budget défini" : `Il te reste ${formatMoneyShort(remaining)}`}</strong>
+          <p>{remaining !== null ? (income > 0 ? "Après tes revenus et tes dépenses suivies." : "Après tes dépenses suivies, selon tes budgets.") : "Définis un budget ou un revenu pour voir ce qu’il te reste."}</p>
         </section>
         <div className="stat-line">
           <a href="/transactions"><strong>{formatMoneyShort(total)}</strong><span>Dépensé</span></a>
           <a href="/budgets"><strong>{formatMoneyShort(data?.insights.essential ?? 0)}</strong><span>Essentiel</span></a>
-          <Link href="/recus"><strong>{rows.length}</strong><span>Transactions</span></Link>
+          <Link href="/transactions"><strong>{data?.count ?? 0}</strong><span>Transactions</span></Link>
           <a href="/depenses-fixes"><strong>{formatMoneyShort(data?.insights.potentialSavings ?? 0)}</strong><span>Économies possibles</span></a>
         </div>
         <section className="card"><div className="card-head"><h2 className="card-title">Le mois en un coup d’œil</h2><Link className="btn ghost" href="/depenses-fixes">Voir les fixes</Link></div><MonthRail month={month} /></section>
