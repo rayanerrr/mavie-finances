@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
-import path from "path";
-import { getReceipt } from "@/lib/receipts";
+import { getReceipt, receiptFilePath } from "@/lib/receipts";
 
 export const runtime = "nodejs";
 
@@ -14,7 +13,7 @@ export async function GET(_request: NextRequest, context: Ctx) {
     return NextResponse.json({ error: "introuvable" }, { status: 404 });
   }
 
-  const abs = path.join(process.cwd(), receipt.path);
+  const abs = receiptFilePath(receipt);
   if (!fs.existsSync(abs)) {
     return NextResponse.json({ error: "fichier manquant" }, { status: 404 });
   }
