@@ -3,8 +3,9 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
 import path from "path";
 import * as schema from "./schema";
+import { seedCore } from "./seed-core";
 
-const dataDir = path.join(process.cwd(), "data");
+const dataDir = path.resolve(process.env.FINANCES_DATA_DIR || path.join(process.cwd(), "data"));
 const receiptsDir = path.join(dataDir, "receipts");
 const dbPath = path.join(dataDir, "finances.db");
 
@@ -139,6 +140,29 @@ function ensureDb() {
   ensureColumn(sqlite, "expenses", "type", "TEXT NOT NULL DEFAULT 'expense'");
   ensureColumn(sqlite, "expenses", "merchant_key", "TEXT");
 
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS recurring (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, amount REAL NOT NULL,
+      type TEXT NOT NULL DEFAULT 'expense', category_id INTEGER NOT NULL REFERENCES categories(id),
+      subcategory_id INTEGER REFERENCES subcategories(id), account_id INTEGER REFERENCES accounts(id),
+      person TEXT, store TEXT, frequency TEXT NOT NULL, day_of_month INTEGER,
+      start_date TEXT NOT NULL, end_date TEXT, active INTEGER NOT NULL DEFAULT 1, notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS category_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, pattern TEXT NOT NULL, merchant_key TEXT,
+      category TEXT NOT NULL, subcategory TEXT, hits INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS category_rules_pattern_merchant_idx ON category_rules(pattern, merchant_key);
+    CREATE UNIQUE INDEX IF NOT EXISTS category_rules_global_idx ON category_rules(pattern) WHERE merchant_key IS NULL;
+  `);
+  ensureColumn(sqlite, "expenses", "recurring_id", "INTEGER");
+  sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS expenses_recurring_date_idx ON expenses(recurring_id,date) WHERE recurring_id IS NOT NULL");
+  for (const [column, definition] of Object.entries({purchase_date:"TEXT", total:"REAL", subtotal:"REAL", taxes:"REAL", origin:"TEXT NOT NULL DEFAULT 'upload'", error:"TEXT", ai_raw:"TEXT", model:"TEXT", inbox_key:"TEXT"})) ensureColumn(sqlite,"receipts",column,definition);
+  sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS receipts_inbox_key_idx ON receipts(inbox_key) WHERE inbox_key IS NOT NULL");
+  for (const [column, definition] of Object.entries({quantity:"REAL",raw_text:"TEXT",confidence:"REAL"})) ensureColumn(sqlite,"receipt_items",column,definition);
+  seedCore(sqlite);
   return drizzle(sqlite, { schema });
 }
 

@@ -1,3 +1,4 @@
+import { writeInboxConfig } from "@/lib/inbox";
 import { NextRequest, NextResponse } from "next/server";
 import { createAccount, listAccounts } from "@/lib/accounts";
 
@@ -20,5 +21,6 @@ export async function POST(request: NextRequest) {
     type: body.type,
     color: body.color,
   });
+  writeInboxConfig();
   return NextResponse.json({ account }, { status: 201 });
 }

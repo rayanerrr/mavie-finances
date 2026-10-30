@@ -1,9 +1,12 @@
+import { randomUUID } from "crypto";
+import { readReceipt } from "./gemini";
+import { learnRule } from "./category-rules";
+import { todayDate } from "./recurring";
 import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import { db, paths } from "@/db";
-import { receiptItems, receipts } from "@/db/schema";
-import { createExpenses } from "@/lib/expenses";
+import { categories, subcategories, expenses, receiptItems, receipts } from "@/db/schema";
 import { getDefaultAccountId } from "@/lib/accounts";
 
 export function listReceipts(status?: string) {
@@ -34,10 +37,13 @@ export function getReceipt(id: number) {
     .from(receiptItems)
     .where(eq(receiptItems.receiptId, id))
     .all();
-  return { ...receipt, items };
+  const itemsSum = Math.round(items.filter(i=>i.accepted===1).reduce((sum,i)=>sum+i.amount,0)*100)/100;
+  return { ...receipt, items, itemsSum, difference:receipt.total == null ? null : Math.round((receipt.total-itemsSum)*100)/100 };
 }
 
 export function createReceiptFromFile(input: {
+  origin?: "upload" | "icloud";
+  inboxKey?: string;
   filename: string;
   mime: string;
   buffer: Buffer;
@@ -46,7 +52,7 @@ export function createReceiptFromFile(input: {
   store?: string | null;
   notes?: string | null;
 }) {
-  const safeName = `${Date.now()}-${input.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const safeName = `${randomUUID()}-${input.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const absPath = path.join(paths.receiptsDir, safeName);
   fs.writeFileSync(absPath, input.buffer);
 
@@ -55,7 +61,9 @@ export function createReceiptFromFile(input: {
     .values({
       filename: input.filename,
       mime: input.mime,
-      path: path.join("data", "receipts", safeName),
+      path: absPath,
+      origin: input.origin ?? "upload",
+      inboxKey: input.inboxKey,
       status: "pending",
       person: input.person ?? null,
       accountId: input.accountId ?? getDefaultAccountId(),
@@ -69,10 +77,19 @@ export function createReceiptFromFile(input: {
 export function analyzeReceipt(
   id: number,
   payload: {
+    purchaseDate?: string | null;
+    total?: number | null;
+    subtotal?: number | null;
+    taxes?: number | null;
+    model?: string;
+    raw?: string;
     store?: string | null;
     person?: string | null;
     accountId?: number | null;
     items: Array<{
+      quantity?: number | null;
+      rawText?: string | null;
+      confidence?: number | null;
       description: string;
       amount: number;
       category?: string | null;
@@ -84,12 +101,15 @@ export function analyzeReceipt(
   const receipt = db.select().from(receipts).where(eq(receipts.id, id)).get();
   if (!receipt) throw new Error("Reçu introuvable");
 
+  if (receipt.status === "confirmed") throw new Error("Ce reçu est déjà confirmé");
+  return db.transaction(() => {
   db.delete(receiptItems).where(eq(receiptItems.receiptId, id)).run();
 
   for (const item of payload.items) {
     db.insert(receiptItems)
       .values({
         receiptId: id,
+        quantity: item.quantity, rawText: item.rawText, confidence: item.confidence,
         description: item.description,
         amount: item.amount,
         category: item.category ?? null,
@@ -102,7 +122,8 @@ export function analyzeReceipt(
   return db
     .update(receipts)
     .set({
-      status: "analyzed",
+      status: "analyzed", error: null,
+      purchaseDate: payload.purchaseDate, total: payload.total, subtotal: payload.subtotal, taxes: payload.taxes, model: payload.model, aiRaw: payload.raw,
       store: payload.store ?? receipt.store,
       person: payload.person ?? receipt.person,
       accountId: payload.accountId ?? receipt.accountId,
@@ -111,6 +132,7 @@ export function analyzeReceipt(
     .where(eq(receipts.id, id))
     .returning()
     .get();
+  });
 }
 
 export async function confirmReceipt(id: number) {
@@ -120,36 +142,23 @@ export async function confirmReceipt(id: number) {
     return { created: [], receipt };
   }
 
-  const accepted = receipt.items.filter((i) => i.accepted === 1);
-  const date = new Date().toISOString().slice(0, 10);
-
-  const created = await createExpenses(
-    accepted.map((item) => ({
-      date,
-      amount: item.amount,
-      description: item.description,
-      store: receipt.store,
-      person: receipt.person,
-      category: item.category || "Divers",
-      subcategory: item.subcategory,
-      accountId: receipt.accountId,
-      receiptId: receipt.id,
-      source: "receipt" as const,
-      type: "expense" as const,
-    })),
-  );
-
-  const updated = db
-    .update(receipts)
-    .set({
-      status: "confirmed",
-      confirmedAt: new Date().toISOString(),
-    })
-    .where(eq(receipts.id, id))
-    .returning()
-    .get();
-
-  return { created, receipt: updated };
+  if (receipt.status !== "analyzed") throw new Error("Le reçu doit être analysé avant confirmation");
+  return db.transaction(() => {
+    const current = getReceipt(id)!;
+    if (current.status === "confirmed") return {created:[],receipt:current};
+    const created = current.items.filter(i=>i.accepted === 1).map(item => {
+      const category = db.select().from(categories).where(eq(categories.name,item.category || "Autres")).get();
+      if (!category) throw new Error("Catégorie inconnue");
+      const sub = db.select().from(subcategories).all().find(s=>s.categoryId===category.id && s.name===item.subcategory);
+      const date = current.purchaseDate || todayDate();
+      const row = db.insert(expenses).values({date,monthKey:date.slice(0,7),amount:item.amount,description:item.description,store:current.store,person:current.person,categoryId:category.id,subcategoryId:sub?.id ?? null,accountId:current.accountId,receiptId:id,source:"receipt",type:"expense"}).returning().get();
+      learnRule(item.description,current.store,category.name,sub?.name ?? null);
+      if (item.rawText && item.rawText !== item.description) learnRule(item.rawText,current.store,category.name,sub?.name ?? null);
+      return row;
+    });
+    const updated=db.update(receipts).set({status:"confirmed",confirmedAt:new Date().toISOString()}).where(eq(receipts.id,id)).returning().get();
+    return {created,receipt:updated};
+  });
 }
 
 export function updateReceiptItem(
@@ -175,4 +184,39 @@ export function updateReceiptItem(
     .where(eq(receiptItems.id, itemId))
     .returning()
     .get();
+}
+
+export function receiptFilePath(receipt: {path:string}) {
+  return path.isAbsolute(receipt.path) ? receipt.path : path.join(paths.receiptsDir,path.basename(receipt.path));
+}
+export function markAnalyzing(id:number) {
+  const receipt=getReceipt(id);
+  if (!receipt) throw new Error("Reçu introuvable");
+  if (["confirmed","analyzing"].includes(receipt.status)) throw new Error("Ce reçu est déjà confirmé ou en cours d'analyse");
+  return db.update(receipts).set({status:"analyzing",error:null}).where(eq(receipts.id,id)).returning().get();
+}
+const analysisGlobal=globalThis as typeof globalThis & {mavieAnalyses?:Set<number>};
+const analyses=analysisGlobal.mavieAnalyses ??= new Set<number>();
+export async function runReceiptAnalysis(id:number) {
+  if (analyses.has(id)) return;
+  analyses.add(id);
+  try {
+    const receipt=getReceipt(id);
+    if (!receipt || receipt.status === "confirmed") return;
+    if (receipt.status !== "analyzing") markAnalyzing(id);
+    const result=await readReceipt(fs.readFileSync(receiptFilePath(receipt)),receipt.mime);
+    if (getReceipt(id)) analyzeReceipt(id,result);
+  } catch (error) {
+    db.update(receipts).set({status:"error",error:error instanceof Error ? error.message : "Erreur de lecture du reçu"}).where(eq(receipts.id,id)).run();
+  } finally { analyses.delete(id); }
+}
+export function deleteReceipt(id:number) {
+  const receipt=getReceipt(id);
+  if (!receipt) throw new Error("Reçu introuvable");
+  db.transaction(() => {
+    db.delete(receiptItems).where(eq(receiptItems.receiptId,id)).run();
+    db.delete(receipts).where(eq(receipts.id,id)).run();
+  });
+  const file=receiptFilePath(receipt);
+  if (file.startsWith(paths.receiptsDir+path.sep)) fs.rmSync(file,{force:true});
 }
