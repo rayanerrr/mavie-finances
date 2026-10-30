@@ -65,13 +65,22 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   const loadReceipt = useCallback(async (id?: number) => {
     if (id) {
       const res = await fetch(`/api/receipts/${id}`);
-      if (res.ok) setReceipt((await res.json()).receipt);
-      return;
+      if (!res.ok) return;
+      const next: Receipt = (await res.json()).receipt;
+      // Reçu illisible : on ne le laisse pas bloquer la carte, on passe au suivant.
+      if (next.status === "error") {
+        setReviewing(false);
+        setMsg("Reçu illisible : retiré de l’accueil (il reste dans Reçus & scan).");
+        id = undefined;
+      } else {
+        setReceipt(next);
+        return;
+      }
     }
     const res = await fetch("/api/receipts");
     if (!res.ok) return;
     const json = await res.json();
-    const list: Receipt[] = json.receipts ?? [];
+    const list: Receipt[] = (json.receipts ?? []).filter((r: Receipt) => r.status !== "error");
     setReceipt(list.find((r) => r.status !== "confirmed") ?? list[0] ?? null);
   }, []);
 
