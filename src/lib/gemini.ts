@@ -13,15 +13,15 @@ async function request(endpoint:string, key:string, body?:unknown) {
   for (let attempt=0; attempt<3; attempt++) {
     let response: Response;
     try {
-      response = await fetch(`${BASE}/${endpoint}`,{method:body ? "POST" : "GET",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},body:body ? JSON.stringify(body) : undefined,signal:AbortSignal.timeout(90000)});
+      response = await fetch(`${BASE}/${endpoint}`,{method:body ? "POST" : "GET",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},body:body ? JSON.stringify(body) : undefined,signal:AbortSignal.timeout(180000)});
     } catch (error) {
-      if (error instanceof Error && ["TimeoutError","AbortError"].includes(error.name)) throw new Error("Gemini a dépassé le délai de 90 secondes. Réessaie.");
+      if (error instanceof Error && ["TimeoutError","AbortError"].includes(error.name)) throw new Error("Gemini met trop de temps à répondre (service gratuit chargé). Clique sur « Relancer » dans quelques minutes.");
       throw new Error("Impossible de joindre Gemini. Vérifie ta connexion Internet.");
     }
     if (response.ok) return response.json();
     if ([429,500,503].includes(response.status) && attempt<2) { await new Promise(r=>setTimeout(r,1000*2**attempt)); continue; }
     if ([400,401,403].includes(response.status)) throw new Error("Clé Gemini invalide, accès refusé ou requête non prise en charge. Vérifie la clé et le modèle dans les paramètres.");
-    if (response.status===429) throw new Error("Quota Gemini atteint. Attends un peu avant de réessayer.");
+    if (response.status===429) throw new Error("Quota gratuit de Gemini atteint pour le moment. Le reçu est gardé : clique sur « Relancer » plus tard (le quota se renouvelle chaque jour).");
     if (response.status===404) throw new Error("Modèle Gemini introuvable. Choisis le mode automatique dans les paramètres.");
     throw new Error("Gemini est temporairement indisponible. Réessaie plus tard.");
   }
