@@ -6,6 +6,9 @@ const DEFAULTS: Record<string, string> = {
   inboxEnabled: "true",
   inboxDir: "",
   geminiModel: "",
+  // Lecture des reçus : "auto" = gpt-reserve (codex) puis Gemini en secours.
+  receiptReader: "auto",
+  codexModel: "gpt-reserve",
   currency: "CAD",
   people: JSON.stringify(["moi", "femme", "fils"]),
   householdName: "Foyer",
@@ -26,7 +29,7 @@ export function getAllSettings() {
   return {...safe, geminiConfigured:!!key, geminiKeyHint:key ? `…${key.slice(-4)}` : ""};
 }
 
-export const ALLOWED_SETTINGS = ["geminiApiKey","geminiModel","people","householdName","currency","inboxDir","inboxEnabled"];
+export const ALLOWED_SETTINGS = ["geminiApiKey","geminiModel","receiptReader","codexModel","people","householdName","currency","inboxDir","inboxEnabled"];
 export function getGeminiKey() { return getSetting("geminiApiKey").trim() || process.env.GEMINI_API_KEY?.trim() || ""; }
 export function setSetting(key: string, value: string) {
   if (!ALLOWED_SETTINGS.includes(key)) throw new Error("Réglage non autorisé");

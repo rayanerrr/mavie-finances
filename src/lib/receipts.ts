@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
 import { readReceipt } from "./gemini";
+import { readReceiptWithCodex } from "./codex-reader";
+import { getGeminiKey, getSetting } from "./settings";
 import { learnRule } from "./category-rules";
 import { todayDate } from "./recurring";
 import { desc, eq } from "drizzle-orm";
@@ -202,6 +204,26 @@ export function markAnalyzing(id:number) {
 }
 const analysisGlobal=globalThis as typeof globalThis & {mavieAnalyses?:Set<number>};
 const analyses=analysisGlobal.mavieAnalyses ??= new Set<number>();
+/**
+ * Ordre de lecture : gpt-reserve (codex, compte ChatGPT) d'abord, puis Gemini en secours,
+ * avec un temps limité et un seul essai. Si rien ne marche, le reçu est marqué illisible
+ * et on passe au suivant, sans bloquer.
+ * Réglage receiptReader : "auto" (par défaut), "codex" ou "gemini".
+ */
+async function readWithFallback(buffer:Buffer, mime:string) {
+  const mode=getSetting("receiptReader") || "auto";
+  const readers:Array<{name:string; read:()=>ReturnType<typeof readReceipt>}>=[];
+  if (mode!=="gemini") readers.push({name:"gpt-reserve",read:()=>readReceiptWithCodex(buffer,mime,{timeoutMs:150000})});
+  if (mode!=="codex" && getGeminiKey()) readers.push({name:"Gemini",read:()=>readReceipt(buffer,mime,{timeoutMs:45000,attempts:1})});
+  if (!readers.length) throw new Error("Aucun lecteur de reçus disponible : connecte Codex ou ajoute une clé Gemini.");
+  const errors:string[]=[];
+  for (const reader of readers) {
+    try { return await reader.read(); }
+    catch (error) { errors.push(`${reader.name} : ${error instanceof Error ? error.message : "échec"}`); }
+  }
+  throw new Error(`Reçu illisible. ${errors.join(" · ")}`);
+}
+
 export async function runReceiptAnalysis(id:number) {
   if (analyses.has(id)) return;
   analyses.add(id);
@@ -209,7 +231,7 @@ export async function runReceiptAnalysis(id:number) {
     const receipt=getReceipt(id);
     if (!receipt || receipt.status === "confirmed") return;
     if (receipt.status !== "analyzing") markAnalyzing(id);
-    const result=await readReceipt(fs.readFileSync(receiptFilePath(receipt)),receipt.mime);
+    const result=await readWithFallback(fs.readFileSync(receiptFilePath(receipt)),receipt.mime);
     if (getReceipt(id)) analyzeReceipt(id,result);
   } catch (error) {
     db.update(receipts).set({status:"error",error:error instanceof Error ? error.message : "Erreur de lecture du reçu"}).where(eq(receipts.id,id)).run();
