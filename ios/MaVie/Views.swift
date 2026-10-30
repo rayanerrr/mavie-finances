@@ -148,6 +148,8 @@ struct ReviewView: View {
 
 struct HistoryView: View {
     @ObservedObject var model: MaVieModel
+    @Environment(\.scenePhase) private var scenePhase
+    private var shouldRefreshResults: Bool { scenePhase == .active && model.screen == .history && model.history.contains { $0.result == nil } }
     var body: some View {
         NavigationStack {
             List {
@@ -158,6 +160,14 @@ struct HistoryView: View {
             }.scrollContentBackground(.hidden).refreshable { model.refreshResults() }
             .navigationTitle("Historique")
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Accueil") { model.screen = .home } } }
+        }
+        .task(id: shouldRefreshResults) {
+            guard shouldRefreshResults else { return }
+            while !Task.isCancelled && shouldRefreshResults {
+                model.refreshResults()
+                guard shouldRefreshResults else { return }
+                do { try await Task.sleep(for: .seconds(4)) } catch { return }
+            }
         }
     }
     private func status(_ item: SentReceipt) -> String {

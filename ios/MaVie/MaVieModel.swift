@@ -116,10 +116,13 @@ final class MaVieModel: ObservableObject {
         var error: NSError?
         coordinator.coordinate(readingItemAt: root.appendingPathComponent("Traites"), options: [], error: &error) { directory in
             for index in loaded.indices {
-                let url = directory.appendingPathComponent("\(loaded[index].id).result.json")
-                try? FileManager.default.startDownloadingUbiquitousItem(at: url)
-                if let data = try? Data(contentsOf: url), let result = try? JSONDecoder().decode(ReceiptResult.self, from: data) {
-                    loaded[index].result = result
+                for suffix in [".result.json", ".jpg.result.json", ".pdf.result.json"] {
+                    let url = directory.appendingPathComponent("\(loaded[index].id)\(suffix)")
+                    try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+                    if let data = try? Data(contentsOf: url), let result = try? JSONDecoder().decode(ReceiptResult.self, from: data) {
+                        loaded[index].result = result
+                        break
+                    }
                 }
             }
         }

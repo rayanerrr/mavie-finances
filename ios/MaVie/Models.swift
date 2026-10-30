@@ -92,7 +92,23 @@ struct ReceiptResult: Codable {
     let error: String?
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        status = try c.decodeIfPresent(String.self, forKey: .status); receiptId = try c.decodeIfPresent(String.self, forKey: .receiptId); expenseId = try c.decodeIfPresent(String.self, forKey: .expenseId); store = try c.decodeIfPresent(String.self, forKey: .store); description = try c.decodeIfPresent(String.self, forKey: .description); amount = try c.decodeIfPresent(Double.self, forKey: .amount); category = try c.decodeIfPresent(String.self, forKey: .category); total = try c.decodeIfPresent(Double.self, forKey: .total); itemsCount = try c.decodeIfPresent(Int.self, forKey: .itemsCount); error = try c.decodeIfPresent(String.self, forKey: .error)
+        func identifier(_ key: CodingKeys) -> String? {
+            if let text = try? c.decode(String.self, forKey: key) { return text }
+            if let number = try? c.decode(Decimal.self, forKey: key) { return NSDecimalNumber(decimal: number).stringValue }
+            return nil
+        }
+        func number(_ key: CodingKeys) -> Double? {
+            let value = (try? c.decode(Double.self, forKey: key)) ?? (try? c.decode(String.self, forKey: key)).flatMap { Double($0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")) }
+            return value.flatMap { $0.isFinite ? $0 : nil }
+        }
+        status = try? c.decode(String.self, forKey: .status)
+        receiptId = identifier(.receiptId); expenseId = identifier(.expenseId)
+        store = try? c.decode(String.self, forKey: .store)
+        description = try? c.decode(String.self, forKey: .description)
+        amount = number(.amount); total = number(.total)
+        category = try? c.decode(String.self, forKey: .category)
+        itemsCount = (try? c.decode(Int.self, forKey: .itemsCount)) ?? (try? c.decode(String.self, forKey: .itemsCount)).flatMap { Int($0) }
+        error = try? c.decode(String.self, forKey: .error)
     }
 }
 
