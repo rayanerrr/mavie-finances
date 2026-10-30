@@ -19,6 +19,8 @@ const MERCHANTS: MerchantMeta[] = [
   { key: "jeancoutu", label: "Jean Coutu", bg: "#ffffff", fg: "#0b4ea2", glyph: "JC" },
   { key: "adonis", label: "Adonis", bg: "#1f7a3a", fg: "#ffffff", glyph: "A" },
   { key: "costco", label: "Costco", bg: "#005daa", fg: "#ffffff", glyph: "C" },
+  { key: "superc", label: "Super C", bg: "#e4002b", fg: "#ffffff", glyph: "C" },
+  { key: "walmart", label: "Walmart", bg: "#0071dc", fg: "#ffc220", glyph: "W" },
   { key: "netflix", label: "Netflix", bg: "#000000", fg: "#e50914", glyph: "N" },
   { key: "bell", label: "Bell", bg: "#00549a", fg: "#ffffff", glyph: "B" },
   { key: "virement", label: "Virement", bg: "#10b981", fg: "#ffffff", glyph: "$" },
