@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { MonthPicker } from "@/components/MonthPicker";
 import { TransactionsTable, type TxRow } from "@/components/TransactionsTable";
 import { ConfirmDelete, Notice, useChoices, type Category } from "@/components/ui";
-import { currentMonthKey, formatMoney } from "@/lib/money";
+import { currentMonthKey } from "@/lib/money";
 
 export default function TransactionsPage() {
   const [month, setMonth] = useState(currentMonthKey());
