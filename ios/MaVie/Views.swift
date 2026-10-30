@@ -21,6 +21,7 @@ struct RootView: View {
             }
         }
         .tint(AppColors.red)
+        .alert("Reçu enregistré", isPresented: $model.showingSentConfirmation) { Button("OK", role: .cancel) {} } message: { Text("Ton Mac va lire le reçu. Tu verras le résultat dans Envois.") }
     }
 }
 
@@ -164,20 +165,54 @@ struct QuickChip: View {
 
 struct ReviewView: View {
     @ObservedObject var model: MaVieModel
-    @State private var sent = false
+    @State private var showingPhoto = false
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack { Button { model.screen = .home; model.images = [] } label: { Image(systemName: "chevron.left") }; Text("Vérifie ton reçu").font(.title.bold()); Spacer() }
-                if let image = model.images.first { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 300).clipShape(RoundedRectangle(cornerRadius: 14)) }
-                Picker("Personne", selection: $model.person) { Text("Choisir").tag(""); ForEach(model.people, id: \.self) { Text($0).tag($0) } }.pickerStyle(.menu).padding().background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
-                Picker("Compte", selection: $model.account) { Text("Choisir").tag(""); ForEach(model.accounts) { Text($0.name).tag($0.name) } }.pickerStyle(.menu).padding().background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
+                if let image = model.images.first {
+                    Button { showingPhoto = true } label: {
+                        Image(uiImage: image).resizable().scaledToFit().frame(maxWidth: .infinity).frame(maxHeight: 460).clipShape(RoundedRectangle(cornerRadius: 14))
+                    }.buttonStyle(.plain).accessibilityLabel("Voir le reçu en plein écran")
+                    HStack { Text("Toucher pour agrandir"); Spacer(); if model.images.count > 1 { Text("\(model.images.count) pages").bold() } }.font(.caption).foregroundStyle(AppColors.muted)
+                }
+                if !model.people.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Qui a payé ?"); Spacer()
+                            Picker("Qui a payé ?", selection: $model.person) { Text("Personne").tag(""); ForEach(model.people, id: \.self) { Text($0).tag($0) } }.pickerStyle(.menu).labelsHidden().accessibilityLabel("Qui a payé ? (facultatif)")
+                        }
+                        Text("Facultatif · Pour savoir à qui attribuer la dépense").font(.caption).foregroundStyle(AppColors.muted)
+                    }.padding().background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                if !model.accounts.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Payé avec"); Spacer()
+                            Picker("Payé avec", selection: $model.account) { Text("Aucun compte").tag(""); ForEach(model.accounts) { Text($0.name).tag($0.name) } }.pickerStyle(.menu).labelsHidden().accessibilityLabel("Payé avec (facultatif)")
+                        }
+                        Text("Facultatif · Le compte utilisé pour payer").font(.caption).foregroundStyle(AppColors.muted)
+                    }.padding().background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
+                }
                 TextField("Note (facultatif)", text: $model.note).textFieldStyle(.roundedBorder)
-                Button("Envoyer au Mac") { model.send(); sent = true }.buttonStyle(PrimaryButtonStyle()).disabled(model.isSending)
-            }.padding(24)
+                Button { Task { await model.send() } } label: {
+                    HStack { if model.isSending { ProgressView().tint(.white) }; Text(model.isSending ? "Envoi en cours…" : "Envoyer au Mac") }
+                }.buttonStyle(PrimaryButtonStyle()).disabled(model.images.isEmpty)
+            }.padding(24).disabled(model.isSending)
         }
         .onAppear { model.refreshConfig() }
-        .alert("Envoyé !", isPresented: $sent) { Button("OK", role: .cancel) {} } message: { Text("Ton Mac va le lire") }
+        .fullScreenCover(isPresented: $showingPhoto) {
+            NavigationStack {
+                TabView {
+                    ForEach(model.images.indices, id: \.self) { index in
+                        Image(uiImage: model.images[index]).resizable().scaledToFit().padding(.bottom, 40).accessibilityLabel("Page \(index + 1) sur \(model.images.count)")
+                    }
+                }.tabViewStyle(.page(indexDisplayMode: model.images.count > 1 ? .always : .never)).background(AppColors.background)
+                    .navigationTitle(model.images.count > 1 ? "\(model.images.count) pages" : "Reçu").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Fermer") { showingPhoto = false } } }
+                    .toolbarBackground(AppColors.background, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
+            }.preferredColorScheme(.dark)
+        }
     }
 }
 
