@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import Combine
 
 @MainActor
 final class MaVieModel: ObservableObject {
@@ -15,10 +16,12 @@ final class MaVieModel: ObservableObject {
     let queue = QueueStore()
     private let defaults = UserDefaults.standard
     private var observer: NSObjectProtocol?
+    private var folderObserver: AnyCancellable?
 
     enum AppScreen { case home, review, history, settings }
 
     init() {
+        folderObserver = folder.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         if let data = defaults.data(forKey: "history"), let saved = try? JSONDecoder().decode([SentReceipt].self, from: data) { history = saved }
         observer = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.retryQueueAndRefresh() }
