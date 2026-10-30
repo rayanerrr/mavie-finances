@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct Person: Codable, Hashable, Identifiable {
     var id: String { name }

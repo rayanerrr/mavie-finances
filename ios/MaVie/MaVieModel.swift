@@ -50,10 +50,12 @@ final class MaVieModel: ObservableObject {
         screen = .review
     }
 
+    func clearHistory() { history.removeAll() }
+
     func refreshConfig() {
         _ = folder.withFolder { root in
             guard let data = try? Data(contentsOf: root.appendingPathComponent("config.json")), let loaded = try? JSONDecoder().decode(MaVieConfig.self, from: data) else { return }
-            config = loaded
+            self.config = loaded
         }
         person = defaults.lastPerson ?? people.first ?? ""
         account = defaults.lastAccount ?? accounts.first?.name ?? ""

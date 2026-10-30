@@ -184,7 +184,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Dossier iCloud") { Text(model.folder.folderURL?.path ?? "Aucun dossier choisi").font(.caption).foregroundStyle(AppColors.muted); Button("Changer de dossier") { picker = true } }
-            Section("Données") { Button("Vider l'historique", role: .destructive) { UserDefaults.standard.removeObject(forKey: "history"); model.history.removeAll() } }
+            Section("Données") { Button("Vider l'historique", role: .destructive) { UserDefaults.standard.removeObject(forKey: "history"); model.clearHistory() } }
             Section("À propos") { Text("MaVie 1.0.0"); Text("Ton Mac lit les reçus déposés dans MaVie/A-traiter.").font(.caption).foregroundStyle(AppColors.muted) }
         }.scrollContentBackground(.hidden).background(AppColors.background).navigationTitle("Réglages")
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Accueil") { model.screen = .home } } }
