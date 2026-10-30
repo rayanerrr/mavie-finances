@@ -89,7 +89,6 @@ export function DashboardHome() {
   const [txCategory, setTxCategory] = useState("");
   const [txAccount, setTxAccount] = useState("");
   const [txPeriod, setTxPeriod] = useState<"month" | "all">("month");
-  const [evoMode, setEvoMode] = useState<"category" | "total">("category");
   const [breakdownId, setBreakdownId] = useState<number | null>(null);
   const [breakdown, setBreakdown] = useState<
     Array<{ subcategoryName: string | null; total: number }>
@@ -311,22 +310,11 @@ export function DashboardHome() {
           </div>
 
           <div className="card">
-            <div className="card-head">
-              <h2 className="card-title">Évolution des dépenses</h2>
-              <select
-                className="mini-select"
-                value={evoMode}
-                onChange={(e) => setEvoMode(e.target.value as "category" | "total")}
-              >
-                <option value="category">Par catégorie</option>
-                <option value="total">Total</option>
-              </select>
-            </div>
+            <div className="card-head"><h2 className="card-title">Évolution des dépenses</h2><span className="muted small">6 mois</span></div>
             {data && (
               <EvolutionChart
                 series={data.insights.evolution.series}
                 categoryNames={data.insights.evolution.categoryNames}
-                mode={evoMode}
               />
             )}
           </div>
