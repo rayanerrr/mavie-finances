@@ -18,6 +18,7 @@ final class MaVieModel: ObservableObject {
     private let defaults = UserDefaults.standard
     private var observer: NSObjectProtocol?
     private var folderObserver: AnyCancellable?
+    private var folderURLObserver: AnyCancellable?
 
     enum AppScreen: Hashable { case home, review, history, month, settings, addExpense }
 
@@ -26,6 +27,10 @@ final class MaVieModel: ObservableObject {
         if let data = defaults.data(forKey: "history"), let saved = try? JSONDecoder().decode([SentReceipt].self, from: data) { history = saved; saveHistory() }
         observer = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.retryQueueAndRefresh() }
+        }
+        if let data = defaults.data(forKey: "cachedConfig"), let saved = try? JSONDecoder().decode(MaVieConfig.self, from: data) { config = saved }
+        folderURLObserver = folder.$folderURL.dropFirst().sink { [weak self] _ in
+            Task { @MainActor in self?.refreshConfig() }
         }
         refreshConfig()
     }
@@ -36,11 +41,11 @@ final class MaVieModel: ObservableObject {
     var categories: [Category] { config.categories ?? Self.defaultCategories }
 
     static let defaultCategories = [
-        Category(name: "Alimentation", kind: "essential", color: "#3987e5", subcategories: ["Épicerie"]), Category(name: "Logement", kind: "essential", color: "#d95926", subcategories: []),
-        Category(name: "Transport", kind: "essential", color: "#199e70", subcategories: ["Essence", "Stationnement"]), Category(name: "Magasinage", kind: "essential", color: "#c98500", subcategories: []),
-        Category(name: "Restaurants", kind: "essential", color: "#d55181", subcategories: ["Restaurant", "Café"]), Category(name: "Santé & Fitness", kind: "essential", color: "#008300", subcategories: ["Pharmacie"]),
-        Category(name: "Factures & Services", kind: "essential", color: "#9085e9", subcategories: []), Category(name: "Divertissement", kind: "essential", color: "#e66767", subcategories: []),
-        Category(name: "Enfants", kind: "essential", color: "#a3a29a", subcategories: []), Category(name: "Autres", kind: "essential", color: "#6b6a65", subcategories: []), Category(name: "Revenu", kind: "income", color: "#22c55e", subcategories: [])
+        Category(name: "Alimentation", kind: "essential", color: "#3987e5", subcategories: ["Viande", "Poulet", "Poisson", "Charcuterie", "Produits laitiers", "Légumes", "Fruits", "Pains & céréales", "Autres"]), Category(name: "Logement", kind: "essential", color: "#d95926", subcategories: ["Loyer", "Entretien", "Meubles"]),
+        Category(name: "Transport", kind: "essential", color: "#199e70", subcategories: ["Essence", "Covoiturage", "Stationnement", "Entretien auto"]), Category(name: "Magasinage", kind: "essential", color: "#c98500", subcategories: ["Électronique", "Vêtements", "Maison"]),
+        Category(name: "Restaurants", kind: "essential", color: "#d55181", subcategories: ["Fast food", "Café", "Restaurant"]), Category(name: "Santé & Fitness", kind: "essential", color: "#008300", subcategories: ["Pharmacie", "Gym", "Médecin"]),
+        Category(name: "Factures & Services", kind: "essential", color: "#9085e9", subcategories: ["Électricité", "Internet", "Téléphone", "Assurances"]), Category(name: "Divertissement", kind: "essential", color: "#e66767", subcategories: ["Musique", "Streaming", "Sorties"]),
+        Category(name: "Enfants", kind: "essential", color: "#a3a29a", subcategories: ["École", "Activités", "Vêtements", "Jouets"]), Category(name: "Autres", kind: "essential", color: "#6b6a65", subcategories: ["Divers"]), Category(name: "Revenu", kind: "income", color: "#22c55e", subcategories: ["Salaire", "Autre"])
     ]
 
     func setImages(_ newImages: [UIImage]) {
@@ -53,9 +58,17 @@ final class MaVieModel: ObservableObject {
     func clearHistory() { history.removeAll(); defaults.removeObject(forKey: "history"); SentMediaStore.prune(keeping: []) }
 
     func refreshConfig() {
-        _ = folder.withFolder { root in
-            guard let data = try? Data(contentsOf: root.appendingPathComponent("config.json")), let loaded = try? JSONDecoder().decode(MaVieConfig.self, from: data) else { return }
-            self.config = loaded
+        if let root = folder.folderURL {
+            let accessed = root.startAccessingSecurityScopedResource()
+            defer { if accessed { root.stopAccessingSecurityScopedResource() } }
+            let url = root.appendingPathComponent("config.json")
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+            let coordinator = NSFileCoordinator(filePresenter: nil); var error: NSError?
+            coordinator.coordinate(readingItemAt: url, options: [], error: &error) { coordinatedURL in
+                guard let data = try? Data(contentsOf: coordinatedURL), let loaded = try? JSONDecoder().decode(MaVieConfig.self, from: data) else { return }
+                self.config = loaded
+                self.defaults.set(data, forKey: "cachedConfig")
+            }
         }
         person = defaults.lastPerson ?? people.first ?? ""
         account = defaults.lastAccount ?? accounts.first?.name ?? ""

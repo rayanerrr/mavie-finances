@@ -122,19 +122,29 @@ struct ExpenseFormView: View {
             Section("Raccourcis") {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
-                        QuickChip("Essence", category: "Transport", sub: "Essence", description: $description, categoryValue: $category, subcategory: $subcategory)
-                        QuickChip("Épicerie", category: "Alimentation", sub: nil, description: $description, categoryValue: $category, subcategory: $subcategory)
-                        QuickChip("Restaurant", category: "Restaurants", sub: "Restaurant", description: $description, categoryValue: $category, subcategory: $subcategory)
-                        QuickChip("Café", category: "Restaurants", sub: "Café", description: $description, categoryValue: $category, subcategory: $subcategory)
-                        QuickChip("Stationnement", category: "Transport", sub: "Stationnement", description: $description, categoryValue: $category, subcategory: $subcategory)
-                        QuickChip("Pharmacie", category: "Santé & Fitness", sub: "Pharmacie", description: $description, categoryValue: $category, subcategory: $subcategory)
+                        quickChip("Essence", category: "Transport", sub: "Essence")
+                        quickChip("Épicerie", category: "Alimentation", sub: nil)
+                        quickChip("Restaurant", category: "Restaurants", sub: "Restaurant")
+                        quickChip("Café", category: "Restaurants", sub: "Café")
+                        quickChip("Stationnement", category: "Transport", sub: "Stationnement")
+                        quickChip("Pharmacie", category: "Santé & Fitness", sub: "Pharmacie")
                     }
                 }
             }
             Section { Picker("Catégorie", selection: $category) { ForEach(model.categories.filter { $0.kind != "income" }) { Text($0.name).tag($0.name) } }; Picker("Sous-catégorie", selection: $subcategory) { Text("Aucune").tag(""); ForEach(selectedCategory?.subcategories ?? [], id: \.self) { Text($0).tag($0) } }.disabled(selectedCategory?.subcategories.isEmpty ?? true); Picker("Type", selection: $type) { Text("Dépense").tag("expense"); Text("Revenu").tag("income") } }
             Section { DatePicker("Date", selection: $date, displayedComponents: .date); Picker("Personne", selection: $person) { Text("Aucune").tag(""); ForEach(model.people, id: \.self) { Text($0).tag($0) } }; Picker("Compte", selection: $account) { Text("Aucun").tag(""); ForEach(model.accounts) { Text($0.name).tag($0.name) }; }; TextField("Note (facultatif)", text: $note) }
-        }.navigationTitle("Sans reçu").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Ajouter") { model.addExpense(type: type, amountText: amount, description: description, category: category, subcategory: subcategory.isEmpty ? nil : subcategory, date: date, person: person, account: account, note: note); dismiss() }.disabled(Double(amount.replacingOccurrences(of: ",", with: ".")) == nil || description.isEmpty) } }.onAppear { if category == "Autres" { category = model.categories.first(where: { $0.kind != "income" })?.name ?? "Autres" }; person = model.people.first ?? ""; account = model.accounts.first?.name ?? "" } }
+        }.navigationTitle("Sans reçu").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Ajouter") { model.addExpense(type: type, amountText: amount, description: description, category: category, subcategory: subcategory.isEmpty ? nil : subcategory, date: date, person: person, account: account, note: note); dismiss() }.disabled(Double(amount.replacingOccurrences(of: ",", with: ".")) == nil || description.isEmpty) } }.onChange(of: category) { _, _ in validateCategory() }.onChange(of: model.categories) { _, _ in validateCategory() }.onAppear { model.refreshConfig(); if category == "Autres" { category = model.categories.first(where: { $0.kind != "income" })?.name ?? "Autres" }; validateCategory(); person = model.people.first ?? ""; account = model.accounts.first?.name ?? "" } }
     }
+    @ViewBuilder private func quickChip(_ title: String, category name: String, sub: String?) -> some View {
+        if let current = model.categories.first(where: { $0.name == name && $0.kind != "income" }) {
+            QuickChip(title, category: name, sub: sub.flatMap { current.subcategories.contains($0) ? $0 : nil }, description: $description, categoryValue: $category, subcategory: $subcategory)
+        }
+    }
+    private func validateCategory() {
+        if !model.categories.contains(where: { $0.name == category && $0.kind != "income" }) { category = model.categories.first(where: { $0.kind != "income" })?.name ?? "" }
+        if !(selectedCategory?.subcategories.contains(subcategory) ?? false) { subcategory = "" }
+    }
+
 }
 
 struct QuickChip: View {
@@ -166,6 +176,7 @@ struct ReviewView: View {
                 Button("Envoyer au Mac") { model.send(); sent = true }.buttonStyle(PrimaryButtonStyle()).disabled(model.isSending)
             }.padding(24)
         }
+        .onAppear { model.refreshConfig() }
         .alert("Envoyé !", isPresented: $sent) { Button("OK", role: .cancel) {} } message: { Text("Ton Mac va le lire") }
     }
 }
