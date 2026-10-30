@@ -14,6 +14,7 @@ final class MaVieModel: ObservableObject {
     @Published private(set) var history: [SentReceipt] = []
     @Published private(set) var resume: MonthResume?
     @Published private(set) var isSending = false
+    @Published var showingSentConfirmation = false
     let queue = QueueStore()
     private let defaults = UserDefaults.standard
     private var observer: NSObjectProtocol?
@@ -50,8 +51,8 @@ final class MaVieModel: ObservableObject {
 
     func setImages(_ newImages: [UIImage]) {
         images = newImages
-        person = defaults.lastPerson ?? people.first ?? ""
-        account = defaults.lastAccount ?? accounts.first?.name ?? ""
+        person = people.count == 1 ? people[0] : (people.contains(defaults.lastPerson ?? "") ? defaults.lastPerson ?? "" : "")
+        account = accounts.count == 1 ? accounts[0].name : (accounts.contains(where: { $0.name == defaults.lastAccount }) ? defaults.lastAccount ?? "" : "")
         screen = .review
     }
 
@@ -70,8 +71,8 @@ final class MaVieModel: ObservableObject {
                 self.defaults.set(data, forKey: "cachedConfig")
             }
         }
-        person = defaults.lastPerson ?? people.first ?? ""
-        account = defaults.lastAccount ?? accounts.first?.name ?? ""
+        person = people.count == 1 ? people[0] : (people.contains(defaults.lastPerson ?? "") ? defaults.lastPerson ?? "" : "")
+        account = accounts.count == 1 ? accounts[0].name : (accounts.contains(where: { $0.name == defaults.lastAccount }) ? defaults.lastAccount ?? "" : "")
         refreshResults(); refreshResume()
     }
 
@@ -87,14 +88,18 @@ final class MaVieModel: ObservableObject {
         refreshConfig()
     }
 
-    func send() {
-        guard !images.isEmpty else { return }
+    func send() async {
+        guard !images.isEmpty, !isSending else { return }
         isSending = true
+        defer { isSending = false }
         let id = timestampName()
         let ext = images.count == 1 ? "jpg" : "pdf"
-        let data = images.count == 1 ? ImagePipeline.jpegData(from: images) : ImagePipeline.pdfData(from: images)
+        let receiptImages = images
         let companion = Companion(person: person.isEmpty ? nil : person, accountName: account.isEmpty ? nil : account, note: note.isEmpty ? nil : note, capturedAt: Date())
-        guard let data else { isSending = false; return }
+        let data = await Task.detached(priority: .userInitiated) {
+            receiptImages.count == 1 ? ImagePipeline.jpegData(from: receiptImages) : ImagePipeline.pdfData(from: receiptImages)
+        }.value
+        guard let data else { return }
         defaults.lastPerson = person
         defaults.lastAccount = account
         let wrote = write(media: data, ext: ext, id: id, companion: companion)
@@ -103,9 +108,9 @@ final class MaVieModel: ObservableObject {
         history.insert(SentReceipt(id: id, sentAt: Date(), person: companion.person, accountName: companion.accountName, note: companion.note, pageCount: pageCount), at: 0)
         history = Array(history.prefix(30))
         saveHistory()
-        isSending = false
         images = []
         screen = .home
+        showingSentConfirmation = true
         UINotificationFeedbackGenerator().notificationOccurred(wrote ? .success : .warning)
         refreshResults()
     }
