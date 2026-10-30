@@ -31,6 +31,21 @@ function ensureDb() {
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
 
+  // Une base créée par l'ancienne version (« finances 2/3 ») a une table category_rules
+  // de règles par mot-clé. On la renomme en keyword_rules (sans perte) avant de
+  // créer notre table d'apprentissage du même nom.
+  const legacyRules = sqlite.prepare("PRAGMA table_info(category_rules)").all() as Array<{ name: string }>;
+  if (legacyRules.some((c) => c.name === "keyword") && !legacyRules.some((c) => c.name === "pattern")) {
+    const hasKeywordRules = sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'keyword_rules'")
+      .get();
+    sqlite.exec(
+      hasKeywordRules
+        ? "ALTER TABLE category_rules RENAME TO keyword_rules_ancienne"
+        : "ALTER TABLE category_rules RENAME TO keyword_rules",
+    );
+  }
+
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
