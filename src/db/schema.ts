@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const accounts = sqliteTable("accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -48,6 +48,7 @@ export const expenses = sqliteTable("expenses", {
   subcategoryId: integer("subcategory_id").references(() => subcategories.id),
   accountId: integer("account_id").references(() => accounts.id),
   receiptId: integer("receipt_id"),
+  recurringId: integer("recurring_id"),
   type: text("type").notNull().default("expense"),
   merchantKey: text("merchant_key"),
   notes: text("notes"),
@@ -55,7 +56,21 @@ export const expenses = sqliteTable("expenses", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
+}, (t) => [uniqueIndex("expenses_recurring_date_idx").on(t.recurringId,t.date).where(sql`${t.recurringId} IS NOT NULL`)]);
+
+export const recurring = sqliteTable("recurring", {
+  id: integer("id").primaryKey({autoIncrement:true}), name: text("name").notNull(), amount: real("amount").notNull(),
+  type: text("type").notNull().default("expense"), categoryId: integer("category_id").notNull().references(() => categories.id),
+  subcategoryId: integer("subcategory_id").references(() => subcategories.id), accountId: integer("account_id").references(() => accounts.id),
+  person: text("person"), store: text("store"), frequency: text("frequency").notNull(), dayOfMonth: integer("day_of_month"),
+  startDate: text("start_date").notNull(), endDate: text("end_date"), active: integer("active").notNull().default(1), notes: text("notes"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+export const categoryRules = sqliteTable("category_rules", {
+  id: integer("id").primaryKey({autoIncrement:true}), pattern: text("pattern").notNull(), merchantKey: text("merchant_key"),
+  category: text("category").notNull(), subcategory: text("subcategory"), hits: integer("hits").notNull().default(1),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+}, (t) => [uniqueIndex("category_rules_pattern_merchant_idx").on(t.pattern,t.merchantKey), uniqueIndex("category_rules_global_idx").on(t.pattern).where(sql`${t.merchantKey} IS NULL`)]);
 
 export const receipts = sqliteTable("receipts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -70,9 +85,11 @@ export const receipts = sqliteTable("receipts", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
+  purchaseDate: text("purchase_date"), total: real("total"), subtotal: real("subtotal"), taxes: real("taxes"),
+  origin: text("origin").notNull().default("upload"), error: text("error"), aiRaw: text("ai_raw"), model: text("model"), inboxKey: text("inbox_key"),
   analyzedAt: text("analyzed_at"),
   confirmedAt: text("confirmed_at"),
-});
+}, (t) => [uniqueIndex("receipts_inbox_key_idx").on(t.inboxKey).where(sql`${t.inboxKey} IS NOT NULL`)]);
 
 export const receiptItems = sqliteTable("receipt_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -83,6 +100,7 @@ export const receiptItems = sqliteTable("receipt_items", {
   amount: real("amount").notNull(),
   category: text("category"),
   subcategory: text("subcategory"),
+  quantity: real("quantity"), rawText: text("raw_text"), confidence: real("confidence"),
   accepted: integer("accepted").notNull().default(1),
 });
 
