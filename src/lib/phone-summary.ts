@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { db, paths } from "@/db";
+import os from "os";
+import { db } from "@/db";
 import { budgets, categories, expenses, receipts } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getSetting } from "./settings";
@@ -29,7 +30,11 @@ export function phoneSummary() {
 
 export function writePhoneSummary() {
   try {
-    const destination=path.join(paths.dataDir,"resume.json"), temporary=`${destination}.${process.pid}.tmp`;
+    // Même dossier iCloud que config.json : c'est là que l'iPhone le lit.
+    const dir=process.env.MAVIE_INBOX_DIR || getSetting("inboxDir") || path.join(os.homedir(),"Library/Mobile Documents/com~apple~CloudDocs/MaVie");
+    if (getSetting("inboxEnabled")==="false") return;
+    fs.mkdirSync(dir,{recursive:true});
+    const destination=path.join(dir,"resume.json"), temporary=`${destination}.${process.pid}.tmp`;
     fs.writeFileSync(temporary,JSON.stringify(phoneSummary(),null,2));
     fs.renameSync(temporary,destination);
   } catch { /* Le résumé est auxiliaire et ne doit jamais faire échouer le moteur. */ }

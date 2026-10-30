@@ -17,6 +17,9 @@ import { writePhoneSummary } from "./phone-summary";
 type State = {started:boolean; scanning:boolean; lastScanAt:string|null; lastError:string|null; waitingFiles:number; watcher?:fs.FSWatcher; watchedDir?:string; stable:Map<string,{size:number;mtime:number;count:number}>; downloads:Set<string>};
 const globalInbox=globalThis as typeof globalThis & {mavieInbox?:State};
 const state:State=globalInbox.mavieInbox ??= {started:false,scanning:false,lastScanAt:null,lastError:null,waitingFiles:0,stable:new Map(),downloads:new Set()};
+// Le téléphone lit Traites/<nom sans .expense.json>.result.json (contrat v1.1).
+function phoneResultPath(dir:string,name:string) { return path.join(dir,"Traites",name.replace(/\.expense\.json$/,"")+".result.json"); }
+
 export function inboxDir() { return process.env.MAVIE_INBOX_DIR || getSetting("inboxDir") || path.join(os.homedir(),"Library/Mobile Documents/com~apple~CloudDocs/MaVie"); }
 function enabled() { return getSetting("inboxEnabled")!=="false"; }
 const mimes:Record<string,string>={".jpg":"image/jpeg",".jpeg":"image/jpeg",".png":"image/png",".webp":"image/webp",".heic":"image/heic",".heif":"image/heif",".pdf":"application/pdf"};
@@ -45,7 +48,7 @@ function isPhoneExpense(value:unknown): value is PhoneExpense {
   return item.kind === "expense" && (item.type === "expense" || item.type === "income") && typeof item.amount === "number" && Number.isFinite(item.amount) && item.amount >= 0 && typeof item.description === "string" && !!item.description.trim() && typeof item.category === "string" && !!item.category.trim() && typeof item.date === "string" && validDate(item.date) && typeof item.createdAt === "string" && !Number.isNaN(Date.parse(item.createdAt));
 }
 async function importPhoneExpense(file:string,dir:string) {
-  const name=path.basename(file), destination=path.join(dir,"Traites",name), resultFile=destination+".result.json";
+  const name=path.basename(file), destination=path.join(dir,"Traites",name), resultFile=phoneResultPath(dir,name);
   if (fs.existsSync(destination) || fs.existsSync(resultFile)) return false;
   let payload:unknown;
   try { payload=JSON.parse(fs.readFileSync(file,"utf8")); } catch { throw new Error("Le fichier de dépense du téléphone est invalide."); }
@@ -120,12 +123,12 @@ export async function scanInbox() {
         if (!phoneExpense && count<2) continue;
         if (phoneExpense) await importPhoneExpense(file,dir); else await importFile(file,dir);
         state.stable.delete(file); state.waitingFiles--; state.lastError=null;
-        if (!phoneExpense) writePhoneSummary();
+        writePhoneSummary();
       } catch(error) {
         state.lastError=error instanceof Error ? error.message : "Import du reçu impossible";
         if (phoneExpense) {
           try {
-            const destination=path.join(dir,"Traites",name), resultFile=destination+".result.json";
+            const destination=path.join(dir,"Traites",name), resultFile=phoneResultPath(dir,name);
             if (!fs.existsSync(destination)) fs.renameSync(file,destination);
             fs.writeFileSync(resultFile,JSON.stringify({status:"error",error:state.lastError},null,2));
             state.stable.delete(file); state.waitingFiles--;
