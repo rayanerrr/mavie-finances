@@ -1,6 +1,6 @@
 {
   "name": "finances",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,10 @@
     "lint": "eslint",
     "db:seed": "tsx scripts/seed.ts",
     "db:import": "tsx scripts/import-expenses.ts",
-    "db:demo": "tsx scripts/demo-data.ts"
+    "db:demo": "tsx scripts/demo-data.ts",
+    "desktop:dev": "MAVIE_URL=${MAVIE_URL:-http://127.0.0.1:3000} electron .",
+    "desktop:build": "bash scripts/build-mac.sh",
+    "desktop:smoke": "node scripts/smoke-mac.cjs"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
@@ -29,6 +32,64 @@
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.0.0",
+    "@electron/rebuild": "^4.0.0"
+  },
+  "main": "desktop/main.cjs",
+  "build": {
+    "appId": "com.rayanerrr.mavie",
+    "productName": "MaVie",
+    "artifactName": "MaVie-${version}-${arch}.${ext}",
+    "npmRebuild": false,
+    "files": [
+      "desktop/**",
+      "package.json",
+      "!node_modules/**"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "server",
+        "filter": [
+          "**/*",
+          "!data/**"
+        ]
+      },
+      {
+        "from": "public/logo.svg",
+        "to": "logo.svg"
+      }
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.icns",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "category": "public.app-category.finance",
+      "minimumSystemVersion": "12.0"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
   }
 }
