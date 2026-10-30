@@ -341,7 +341,6 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
                   </button>
                 ) : null}
 
-                {receipt.status === "analyzed" && <a className="btn-link" href={`/recus/${receipt.id}`}>Vérifier et confirmer</a>}
 
                 <ul className="steps">
                   {STEPS.map((step, i) => (

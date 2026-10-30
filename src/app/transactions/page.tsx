@@ -101,7 +101,6 @@ export default function TransactionsPage() {
           />
           <select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source"><option value="">Toutes les sources</option><option value="receipt">Reçu</option><option value="text">Manuel</option><option value="recurring">Fixe</option></select>
         </div>
-        <div className="tx-totals"><span>{rows.length} transaction{rows.length === 1 ? "" : "s"}</span><span>Dépenses <strong>{formatMoney(rows.filter((row) => row.type !== "income").reduce((sum, row) => sum + row.amount, 0))}</strong></span></div>
         <TransactionsTable rows={rows} onSelect={setSelected} />
       </section>
       {selected && <EditDialog row={selected} categories={categories} accounts={accounts} people={people} onClose={() => setSelected(null)} onSave={save} onDelete={() => { setDeleting(selected); setSelected(null); }} />}
