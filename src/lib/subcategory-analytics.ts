@@ -153,18 +153,19 @@ export function subcategoryAnalytics(categoryId: number, monthKey: string) {
   const subs = db.select().from(subcategories).where(eq(subcategories.categoryId, categoryId)).all();
   const subNames = new Map(subs.map((s) => [s.id, s.name]));
 
-  // Les colonnes unit/time arrivent avec la migration moteur; garder l'analyse
-  // affichable avant cette migration en les représentant par null.
   const rows: Row[] = db
     .select({
       id: expenses.id,
       date: expenses.date,
+      time: expenses.time,
       amount: expenses.amount,
       description: expenses.description,
       store: expenses.store,
       person: expenses.person,
       monthKey: expenses.monthKey,
       subcategoryId: expenses.subcategoryId,
+      quantity: expenses.quantity,
+      unit: expenses.unit,
     })
     .from(expenses)
     .where(
@@ -174,8 +175,7 @@ export function subcategoryAnalytics(categoryId: number, monthKey: string) {
         inArray(expenses.monthKey, months),
       ),
     )
-    .all()
-    .map((row) => ({ ...row, time: null, quantity: null, unit: null }));
+    .all();
 
   const inMonth = (key: string) => rows.filter((r) => r.monthKey === key);
   const current = inMonth(monthKey);

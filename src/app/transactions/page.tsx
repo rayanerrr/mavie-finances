@@ -4,10 +4,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MonthPicker } from "@/components/MonthPicker";
-import { TransactionsLedger as TransactionsTable, type TxRow } from "@/components/TransactionsLedger";
+import { TransactionsTable, type TxRow } from "@/components/TransactionsTable";
 import { ConfirmDelete, Notice, useChoices, type Category } from "@/components/ui";
-import { formatMoney } from "@/lib/money";
-import { currentMonthKey } from "@/lib/money";
+import { currentMonthKey, formatMoney } from "@/lib/money";
 
 export default function TransactionsPage() {
   const [month, setMonth] = useState(currentMonthKey());
@@ -53,8 +52,8 @@ export default function TransactionsPage() {
 
   async function save(form: EditForm) {
     if (!selected) return;
-    const res = await fetch(`/api/expenses/${selected.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, amount: Number(form.amount.replace(",", ".")), accountId: form.accountId ? Number(form.accountId) : null, subcategory: form.subcategory || null }) });
-    if (!res.ok) { setError("Impossible d’enregistrer la transaction."); return; }
+    const response = await fetch(`/api/expenses/${selected.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, amount: Number(form.amount.replace(",", ".")), accountId: form.accountId ? Number(form.accountId) : null, subcategory: form.subcategory || null }) });
+    if (!response.ok) { setError("Impossible d’enregistrer la transaction."); return; }
     setSelected(null);
     await load();
   }
@@ -76,7 +75,7 @@ export default function TransactionsPage() {
       }
     >
       {error && <Notice error={error} />}
-      <section className="card">
+      <section className="panel">
         <div className="filters" style={{ marginBottom: "1rem" }}>
           <select value={person} onChange={(e) => setPerson(e.target.value)}>
             <option value="">Tout le foyer</option>
@@ -105,16 +104,16 @@ export default function TransactionsPage() {
         <div className="tx-totals"><span>{rows.length} transaction{rows.length === 1 ? "" : "s"}</span><span>Dépenses <strong>{formatMoney(rows.filter((row) => row.type !== "income").reduce((sum, row) => sum + row.amount, 0))}</strong></span></div>
         <TransactionsTable rows={rows} onSelect={setSelected} />
       </section>
-      {selected && <EditDrawer row={selected} categories={categories} accounts={accounts} people={people} onClose={() => setSelected(null)} onSave={save} onDelete={() => { setDeleting(selected); setSelected(null); }} />}
-      {deleting && <ConfirmDelete title="Supprimer cette transaction ?" detail={`« ${deleting.description} » sera supprimée définitivement.`} onClose={() => setDeleting(null)} onConfirm={async () => { const res = await fetch(`/api/expenses/${deleting.id}`, { method: "DELETE" }); if (!res.ok) throw new Error("Suppression impossible."); setDeleting(null); await load(); }} />}
+      {selected && <EditDialog row={selected} categories={categories} accounts={accounts} people={people} onClose={() => setSelected(null)} onSave={save} onDelete={() => { setDeleting(selected); setSelected(null); }} />}
+      {deleting && <ConfirmDelete title="Supprimer cette transaction ?" detail={`« ${deleting.description} » sera supprimée définitivement.`} onClose={() => setDeleting(null)} onConfirm={async () => { const response = await fetch(`/api/expenses/${deleting.id}`, { method: "DELETE" }); if (!response.ok) throw new Error("Suppression impossible."); setDeleting(null); await load(); }} />}
     </AppShell>
   );
 }
 
 type EditForm = { date: string; amount: string; description: string; store: string; person: string; category: string; subcategory: string; accountId: string; notes: string };
-function EditDrawer({ row, categories, accounts, people, onClose, onSave, onDelete }: { row: TxRow; categories: Category[]; accounts: Array<{ id: number; name: string }>; people: string[]; onClose: () => void; onSave: (form: EditForm) => Promise<void>; onDelete: () => void }) {
+function EditDialog({ row, categories, accounts, people, onClose, onSave, onDelete }: { row: TxRow; categories: Category[]; accounts: Array<{ id: number; name: string }>; people: string[]; onClose: () => void; onSave: (form: EditForm) => Promise<void>; onDelete: () => void }) {
   const [form, setForm] = useState<EditForm>({ date: row.date, amount: String(row.amount), description: row.description, store: row.store ?? "", person: row.person ?? "", category: row.categoryName ?? "Autres", subcategory: row.subcategoryName ?? "", accountId: row.accountId ? String(row.accountId) : "", notes: row.notes ?? "" });
   const category = categories.find((item) => item.name === form.category);
   const set = (key: keyof EditForm, value: string) => setForm((current) => ({ ...current, [key]: value }));
-  return <div className="drawer-backdrop"><aside className="edit-drawer" aria-label="Modifier la transaction"><div className="panel-head"><h2>Modifier la transaction</h2><button className="btn-ghost" onClick={onClose}>Fermer</button></div><div className="quick-form"><label>Date<input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label>Montant<input inputMode="decimal" value={form.amount} onChange={(e) => set("amount", e.target.value)} /></label><label>Description<input value={form.description} onChange={(e) => set("description", e.target.value)} /></label><label>Marchand<input value={form.store} onChange={(e) => set("store", e.target.value)} /></label><label>Personne<select value={form.person} onChange={(e) => set("person", e.target.value)}><option value="">Non précisée</option>{people.map((item) => <option key={item}>{item}</option>)}</select></label><label>Compte<select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}><option value="">Non précisé</option>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Catégorie<select value={form.category} onChange={(e) => { set("category", e.target.value); set("subcategory", ""); }}>{categories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label>Sous-catégorie<select value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} disabled={!category}><option value="">Aucune</option>{category?.subcategories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label className="full">Notes<textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label></div><div className="actions"><button className="btn-primary" onClick={() => void onSave(form)}>Enregistrer</button><button className="btn-ghost danger" onClick={onDelete}>Supprimer</button></div></aside></div>;
+  return <div className="drawer-backdrop"><aside className="edit-drawer" aria-label="Modifier la transaction"><div className="panel-head"><h2>Modifier la transaction</h2><button className="btn" onClick={onClose}>Fermer</button></div><div className="quick-form"><label>Date<input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label>Montant<input inputMode="decimal" value={form.amount} onChange={(e) => set("amount", e.target.value)} /></label><label>Description<input value={form.description} onChange={(e) => set("description", e.target.value)} /></label><label>Marchand<input value={form.store} onChange={(e) => set("store", e.target.value)} /></label><label>Personne<select value={form.person} onChange={(e) => set("person", e.target.value)}><option value="">Non précisée</option>{people.map((item) => <option key={item}>{item}</option>)}</select></label><label>Compte<select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}><option value="">Non précisé</option>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Catégorie<select value={form.category} onChange={(e) => { set("category", e.target.value); set("subcategory", ""); }}>{categories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label>Sous-catégorie<select value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} disabled={!category}><option value="">Aucune</option>{category?.subcategories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label className="full">Notes<textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label></div><div className="actions"><button className="btn primary" onClick={() => void onSave(form)}>Enregistrer</button><button className="btn danger" onClick={onDelete}>Supprimer</button></div></aside></div>;
 }

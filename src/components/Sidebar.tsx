@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -40,19 +39,11 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname();
   const [pendingReceipts, setPendingReceipts] = useState(0);
-  const [inbox, setInbox] = useState<{ exists: boolean; recent?: Array<{ at?: string | null }> }>({ exists: false });
-  const [lastMinutes, setLastMinutes] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const [summary, status] = await Promise.all([fetch("/api/summary"), fetch("/api/inbox/status")]);
-      if (summary.ok) setPendingReceipts((await summary.json()).pendingReceipts ?? 0);
-      if (status.ok) {
-        const next = await status.json();
-        setInbox(next);
-        const at = next.recent?.[0]?.at;
-        setLastMinutes(at ? Math.max(0, Math.floor((Date.now() - Date.parse(at)) / 60_000)) : null);
-      }
+      const response = await fetch("/api/summary");
+      if (response.ok) setPendingReceipts((await response.json()).pendingReceipts ?? 0);
     };
     void load();
     const timer = setInterval(() => void load(), 20_000);
@@ -63,7 +54,10 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-mark">
-          <Image src="/logo.svg" alt="" width={16} height={16} priority />
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden>
+            <path d="M6 3h9l4 4v14H6z" opacity="0.9" />
+            <path d="M9 12h6M9 16h4" stroke="#1d4ed8" strokeWidth="1.6" />
+          </svg>
         </div>
         <div>
           <strong>MaVie</strong>
@@ -95,8 +89,8 @@ export function Sidebar() {
           <IconCloud size={18} />
         </span>
         <div>
-          <strong>{inbox.exists ? "iPhone connecté" : "iCloud indisponible"}</strong>
-          <span>{inbox.exists ? lastMinutes == null ? "Aucun reçu récent" : `Dernier reçu il y a ${lastMinutes} min` : "Vérifie le dossier iCloud"}</span>
+          <strong>Mode hors ligne</strong>
+          <span>Toutes vos données sur votre Mac</span>
         </div>
       </div>
     </aside>
