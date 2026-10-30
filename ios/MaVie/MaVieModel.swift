@@ -15,6 +15,8 @@ final class MaVieModel: ObservableObject {
     @Published private(set) var resume: MonthResume?
     @Published private(set) var isSending = false
     @Published var showingSentConfirmation = false
+    @Published private(set) var lastSendWasQueued = false
+    @Published private(set) var sendError: String?
     let queue = QueueStore()
     private let defaults = UserDefaults.standard
     private var observer: NSObjectProtocol?
@@ -51,6 +53,7 @@ final class MaVieModel: ObservableObject {
 
     func setImages(_ newImages: [UIImage]) {
         images = newImages
+        sendError = nil
         person = people.count == 1 ? people[0] : (people.contains(defaults.lastPerson ?? "") ? defaults.lastPerson ?? "" : "")
         account = accounts.count == 1 ? accounts[0].name : (accounts.contains(where: { $0.name == defaults.lastAccount }) ? defaults.lastAccount ?? "" : "")
         screen = .review
@@ -91,6 +94,7 @@ final class MaVieModel: ObservableObject {
     func send() async {
         guard !images.isEmpty, !isSending else { return }
         isSending = true
+        sendError = nil
         defer { isSending = false }
         let id = timestampName()
         let ext = images.count == 1 ? "jpg" : "pdf"
@@ -99,17 +103,23 @@ final class MaVieModel: ObservableObject {
         let data = await Task.detached(priority: .userInitiated) {
             receiptImages.count == 1 ? ImagePipeline.jpegData(from: receiptImages) : ImagePipeline.pdfData(from: receiptImages)
         }.value
-        guard let data else { return }
+        guard let data else { sendError = "La photo n’a pas pu être préparée. Réessaie ou prends une nouvelle photo."; return }
         defaults.lastPerson = person
         defaults.lastAccount = account
         let wrote = write(media: data, ext: ext, id: id, companion: companion)
-        if !wrote { try? queue.save(media: data, ext: ext, companion: companion, id: id) }
+        if !wrote {
+            do { try queue.save(media: data, ext: ext, companion: companion, id: id) }
+            catch {
+                sendError = "Ton reçu n’a pas pu être conservé. Libère de l’espace sur ton iPhone, puis réessaie."
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                return
+            }
+        }
         let pageCount = SentMediaStore.save(images: images, id: id)
         history.insert(SentReceipt(id: id, sentAt: Date(), person: companion.person, accountName: companion.accountName, note: companion.note, pageCount: pageCount), at: 0)
         history = Array(history.prefix(30))
         saveHistory()
-        images = []
-        screen = .home
+        lastSendWasQueued = !wrote
         showingSentConfirmation = true
         UINotificationFeedbackGenerator().notificationOccurred(wrote ? .success : .warning)
         refreshResults()

@@ -5,161 +5,214 @@ struct RootView: View {
     @ObservedObject var model: MaVieModel
     var body: some View {
         ZStack {
-            AppColors.background.ignoresSafeArea()
-            if !model.isConfigured { WelcomeView(model: model) }
-            else {
-                switch model.screen {
-                case .review: ReviewView(model: model)
-                case .settings: SettingsView(model: model)
-                case .addExpense: ExpenseFormView(model: model)
-                default: TabView(selection: $model.screen) {
-                    MonthView(model: model).tabItem { Label("Mon mois", systemImage: "calendar") }.tag(MaVieModel.AppScreen.month)
-                    HomeView(model: model).tabItem { Label("Ajouter", systemImage: "plus.circle") }.tag(MaVieModel.AppScreen.home)
-                    HistoryView(model: model).tabItem { Label("Envois", systemImage: "paperplane") }.tag(MaVieModel.AppScreen.history)
+            AppColors.ledger.ignoresSafeArea()
+            Group {
+                if !model.isConfigured { WelcomeView(model: model) }
+                else {
+                    switch model.screen {
+                    case .review: ReviewView(model: model)
+                    case .settings: SettingsView(model: model)
+                    case .addExpense: ExpenseFormView(model: model)
+                    default:
+                        TabView(selection: $model.screen) {
+                            MonthView(model: model).tabItem { Label("Mon mois", systemImage: "calendar") }.tag(MaVieModel.AppScreen.month)
+                            HomeView(model: model).tabItem { Label("Ajouter", systemImage: "plus.circle") }.tag(MaVieModel.AppScreen.home)
+                            HistoryView(model: model).tabItem { Label("Envois", systemImage: "paperplane") }.tag(MaVieModel.AppScreen.history)
+                        }
+                        .toolbarBackground(AppColors.ledger, for: .tabBar).toolbarBackground(.visible, for: .tabBar)
+                    }
                 }
-                }
+            }.disabled(model.showingSentConfirmation).accessibilityHidden(model.showingSentConfirmation)
+            if model.showingSentConfirmation {
+                SentConfirmation(queued: model.lastSendWasQueued) {
+                    model.showingSentConfirmation = false
+                    model.images = []
+                    model.note = ""
+                    model.screen = .home
+                }.zIndex(1)
             }
-        }
-        .tint(AppColors.red)
-        .alert("Reçu enregistré", isPresented: $model.showingSentConfirmation) { Button("OK", role: .cancel) {} } message: { Text("Ton Mac va lire le reçu. Tu verras le résultat dans Envois.") }
+        }.tint(AppColors.stamp).foregroundStyle(AppColors.ink)
+            .environment(\.locale, Locale(identifier: "fr_CA"))
     }
 }
 
+// Première connexion : deux appareils réels et le dossier partagé, sans fausses données.
 struct WelcomeView: View {
     @ObservedObject var model: MaVieModel
     @State private var picker = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            Spacer()
-            Image("Logo").resizable().scaledToFit().frame(width: 72, height: 72)
-            Text("MaVie").font(.system(size: 40, weight: .bold))
-            Text("Envoie tes reçus à ton Mac, simplement.").foregroundStyle(AppColors.muted)
-            VStack(alignment: .leading, spacing: 18) {
-                Step(number: "1", text: "Ouvre MaVie sur ton Mac une fois")
-                Step(number: "2", text: "Choisis iCloud Drive › MaVie")
-                Step(number: "3", text: "C'est prêt")
-            }
-            Spacer()
-            Button("Choisir le dossier MaVie") { picker = true }
-                .buttonStyle(PrimaryButtonStyle())
-        }
-        .padding(24)
-        .background(DocumentPickerPresenter(store: model.folder, isPresented: $picker).frame(width: 0, height: 0))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                HStack(spacing: 16) {
+                    Image("Logo").resizable().scaledToFit().frame(width: 64, height: 64).accessibilityHidden(true)
+                    Text("MaVie").font(.largeTitle.weight(.bold))
+                }.padding(.top, 20)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Tes achats,\ntoujours avec toi.").font(.largeTitle.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    Text("Prends tes reçus en photo sur ton iPhone. Retrouve-les sur ton Mac et garde un œil sur ton mois.").foregroundStyle(AppColors.ink2)
+                }
+                VStack(alignment: .leading, spacing: 24) {
+                    SetupStep(icon: "laptopcomputer", title: "Ouvre MaVie sur ton Mac", detail: "Le Mac prépare le dossier partagé lors de la première ouverture.")
+                    SetupStep(icon: "folder.badge.plus", title: "Relie ton iPhone", detail: "Choisis iCloud Drive, puis le dossier MaVie. Utilise le même compte iCloud sur les deux appareils.")
+                    SetupStep(icon: "doc.viewfinder", title: "Scanne ton premier reçu", detail: "Le Mac lit les articles. Tu les vérifies avant de les ajouter au budget.")
+                }.ledgerCard(padding: 20)
+                ReceiptStrip {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "iphone").font(.title2).accessibilityHidden(true)
+                        Text("Un reçu sur ton iPhone.\nUn achat de moins à oublier.")
+                    }
+                }
+                Button { picker = true } label: { Label("Choisir le dossier MaVie", systemImage: "folder") }.buttonStyle(PrimaryButtonStyle())
+            }.padding(24)
+        }.background(AppColors.ledger)
+            .background(DocumentPickerPresenter(store: model.folder, isPresented: $picker).frame(width: 0, height: 0))
     }
 }
 
-struct Step: View {
-    let number: String; let text: String
-    var body: some View { HStack { Text(number).font(.headline).frame(width: 32, height: 32).background(AppColors.red).clipShape(Circle()); Text(text) } }
+private struct SetupStep: View {
+    let icon: String
+    let title: String
+    let detail: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon).font(.title2.weight(.light)).foregroundStyle(AppColors.ink2).frame(width: 32).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title).font(.headline)
+                Text(detail).font(.subheadline).foregroundStyle(AppColors.ink3).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
 }
 
 struct HomeView: View {
     @ObservedObject var model: MaVieModel
+    @Environment(\.scenePhase) private var scenePhase
     @State private var camera = false
+    @State private var capturedImages: [UIImage] = []
     @State private var photoItem: PhotosPickerItem?
+    @State private var importing = false
+    @State private var importError = false
     @State private var expenseForm = false
-    var body: some View {
-        VStack(spacing: 22) {
-            HStack { Text("Ajouter").font(.largeTitle.bold()); Spacer(); Button { model.screen = .settings } label: { Image(systemName: "gearshape") }.accessibilityLabel("Réglages") }
-            Spacer()
-            Button { camera = true } label: {
-                VStack(spacing: 12) { Image(systemName: "doc.viewfinder").font(.system(size: 46)); Text("Scanner un reçu").font(.title2.bold()) }
-                    .frame(maxWidth: .infinity).frame(height: 190)
-            }.buttonStyle(PrimaryButtonStyle())
-            PhotosPicker(selection: $photoItem, matching: .images) { Label("Importer une photo", systemImage: "photo") }.buttonStyle(SecondaryButtonStyle())
-            Button("Ajouter sans reçu") { expenseForm = true }.buttonStyle(SecondaryButtonStyle())
-            Spacer()
-            HStack { Button("Historique") { model.refreshResults(); model.screen = .history }; Spacer(); Text("Dossier configuré").font(.caption).foregroundStyle(AppColors.muted) }
+    private var greeting: String {
+        switch Calendar.current.component(.hour, from: Date()) {
+        case 5..<12: return "Bon matin"
+        case 12..<18: return "Bon après-midi"
+        default: return "Bonsoir"
         }
-        .padding(24)
-        .sheet(isPresented: $camera) { CameraView(onImages: model.setImages, onCancel: { camera = false }).ignoresSafeArea() }
+    }
+    private var household: String {
+        guard let name = model.config.householdName, !name.isEmpty else { return "Ton foyer" }
+        return name
+    }
+    private var shouldRefresh: Bool { scenePhase == .active && model.screen == .home && model.history.prefix(3).contains { $0.isAwaitingResult } }
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(greeting).font(.largeTitle.weight(.semibold))
+                            Text(household).font(.body).foregroundStyle(AppColors.ink2)
+                        }
+                        Spacer(minLength: 8)
+                        Image("Logo").resizable().scaledToFit().frame(width: 44, height: 44).accessibilityHidden(true)
+                    }
+                    if let month = model.resume {
+                        Button { model.screen = .month } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack { Text(month.monthLabel.capitalized).font(.subheadline); Spacer(); Image(systemName: "chevron.right").font(.caption) }.foregroundStyle(AppColors.ink3)
+                                Text(month.balanceTitle).font(.subheadline).foregroundStyle(AppColors.ink2)
+                                Text(money(month.balanceAmount))
+                                    .font(.system(.largeTitle, design: .serif, weight: .semibold)).monospacedDigit().foregroundStyle(AppColors.ink)
+                                    .lineLimit(1).minimumScaleFactor(0.6)
+                            }.ledgerCard()
+                        }.buttonStyle(PressButtonStyle()).accessibilityHint("Ouvre le détail de ton mois")
+                    }
+                    captureActions
+                    latestSends
+                }.padding(20)
+            }.background(AppColors.ledger).refreshable { model.retryQueueAndRefresh() }
+                .navigationTitle("Ajouter").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { model.screen = .settings } label: { Image(systemName: "gearshape").frame(width: 44, height: 44) }.accessibilityLabel("Réglages")
+                    }
+                }
+                .toolbarBackground(AppColors.ledger, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
+        }
+        .sheet(isPresented: $camera, onDismiss: {
+            if !capturedImages.isEmpty { model.setImages(capturedImages); capturedImages = [] }
+        }) {
+            CameraView(onImages: { images in capturedImages = images; camera = false }, onCancel: { camera = false }).ignoresSafeArea()
+        }
         .sheet(isPresented: $expenseForm) { ExpenseFormView(model: model) }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
-            Task { if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) { await MainActor.run { model.setImages([image]); photoItem = nil } } }
-        }
-    }
-}
-
-struct MonthView: View {
-    @ObservedObject var model: MaVieModel
-    var body: some View {
-        ScrollView {
-            if let month = model.resume {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text(month.householdName ?? "Mon mois").font(.largeTitle.bold())
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(month.remaining.map { "Il te reste \(money($0))" } ?? "Dépensé \(money(month.spent))").font(.system(size: 38, weight: .semibold, design: .serif)).foregroundStyle(AppColors.text)
-                        Text(month.monthLabel.capitalized).foregroundStyle(AppColors.muted)
-                    }
-                    HStack { Metric(label: "Dépensé", value: money(month.spent), variation: variation(month.spent, month.previousMonthSpent, lowerIsBetter: true)); Metric(label: "Revenus", value: money(month.income), variation: nil) }
-                    SectionTitle(text: "Par catégorie")
-                    ForEach(month.byCategory) { category in
-                        VStack(alignment: .leading, spacing: 5) { HStack { Circle().fill(Color(hex: category.color)).frame(width: 9, height: 9); Text(category.name); Spacer(); Text("\(money(category.total)) · \(Int(category.pct.rounded())) %").foregroundStyle(AppColors.muted) }; GeometryReader { proxy in RoundedRectangle(cornerRadius: 3).fill(Color(hex: category.color)).frame(width: proxy.size.width * min(max(category.pct / 100, 0), 1), height: 6) }.frame(height: 6) }
-                    }
-                    if !month.upcomingFixed.isEmpty { SectionTitle(text: "Prochaines dépenses fixes"); ForEach(month.upcomingFixed) { item in HStack { VStack(alignment: .leading) { Text(item.name); Text(item.date).font(.caption).foregroundStyle(AppColors.muted) }; Spacer(); Text(money(item.amount)); Text(item.status == "paid" ? "Payé" : "À venir").font(.caption.bold()).foregroundStyle(item.status == "paid" ? .green : .orange).padding(5).background((item.status == "paid" ? Color.green : Color.orange).opacity(0.15)).clipShape(Capsule()) } } }
-                    SectionTitle(text: "Derniers achats")
-                    ForEach(month.recent.prefix(20)) { item in HStack { VStack(alignment: .leading) { Text(item.description); Text(item.store ?? item.category).font(.caption).foregroundStyle(AppColors.muted) }; Spacer(); Text(item.type == "income" ? "+\(money(item.amount))" : money(item.amount)).foregroundStyle(item.type == "income" ? .green : AppColors.text) } }
-                    Text("Reçus à vérifier sur le Mac : \(month.pendingReceipts)").foregroundStyle(AppColors.muted)
-                    Text("Mis à jour \(relativeDate(month.updatedAt))").font(.caption).foregroundStyle(AppColors.muted)
-                }.padding(24)
-            } else { VStack(spacing: 14) { Image(systemName: "laptopcomputer").font(.system(size: 38)); Text("Ouvre MaVie sur ton Mac pour voir ton mois ici").font(.headline).multilineTextAlignment(.center) }.foregroundStyle(AppColors.muted).padding(48).frame(maxWidth: .infinity, maxHeight: .infinity) }
-        }.refreshable { model.refreshResume() }.background(AppColors.background)
-    }
-    private func variation(_ current: Double, _ previous: Double?, lowerIsBetter: Bool) -> String? { guard let previous, previous != 0 else { return nil }; let delta = ((current - previous) / previous) * 100; return "\(delta >= 0 ? "+" : "")\(Int(delta.rounded())) %" }
-}
-
-struct Metric: View { let label: String; let value: String; let variation: String?; var body: some View { VStack(alignment: .leading, spacing: 3) { Text(value).font(.title3.bold()); Text(label).font(.caption).foregroundStyle(AppColors.muted); if let variation { Text(variation).font(.caption).foregroundStyle(AppColors.muted) } }.frame(maxWidth: .infinity, alignment: .leading) } }
-struct SectionTitle: View { let text: String; var body: some View { Text(text).font(.headline).padding(.top, 4) } }
-
-struct ExpenseFormView: View {
-    @ObservedObject var model: MaVieModel
-    @Environment(\.dismiss) private var dismiss
-    @State private var amount = ""; @State private var description = ""; @State private var category = "Autres"; @State private var subcategory = ""; @State private var type = "expense"; @State private var date = Date(); @State private var person = ""; @State private var account = ""; @State private var note = ""
-    var selectedCategory: Category? { model.categories.first { $0.name == category } }
-    var body: some View {
-        NavigationStack { Form {
-            Section { TextField("0,00 $", text: $amount).keyboardType(.decimalPad).font(.system(size: 34, weight: .semibold, design: .serif)); TextField("Description", text: $description) }
-            Section("Raccourcis") {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
-                        quickChip("Essence", category: "Transport", sub: "Essence")
-                        quickChip("Épicerie", category: "Alimentation", sub: nil)
-                        quickChip("Restaurant", category: "Restaurants", sub: "Restaurant")
-                        quickChip("Café", category: "Restaurants", sub: "Café")
-                        quickChip("Stationnement", category: "Transport", sub: "Stationnement")
-                        quickChip("Pharmacie", category: "Santé & Fitness", sub: "Pharmacie")
-                    }
-                }
+            importing = true
+            Task { @MainActor in
+                defer { importing = false; photoItem = nil }
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else { importError = true; return }
+                    model.setImages([image])
+                } catch { importError = true }
             }
-            Section { Picker("Catégorie", selection: $category) { ForEach(model.categories.filter { $0.kind != "income" }) { Text($0.name).tag($0.name) } }; Picker("Sous-catégorie", selection: $subcategory) { Text("Aucune").tag(""); ForEach(selectedCategory?.subcategories ?? [], id: \.self) { Text($0).tag($0) } }.disabled(selectedCategory?.subcategories.isEmpty ?? true); Picker("Type", selection: $type) { Text("Dépense").tag("expense"); Text("Revenu").tag("income") } }
-            Section { DatePicker("Date", selection: $date, displayedComponents: .date); Picker("Personne", selection: $person) { Text("Aucune").tag(""); ForEach(model.people, id: \.self) { Text($0).tag($0) } }; Picker("Compte", selection: $account) { Text("Aucun").tag(""); ForEach(model.accounts) { Text($0.name).tag($0.name) }; }; TextField("Note (facultatif)", text: $note) }
-        }.navigationTitle("Sans reçu").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Ajouter") { model.addExpense(type: type, amountText: amount, description: description, category: category, subcategory: subcategory.isEmpty ? nil : subcategory, date: date, person: person, account: account, note: note); dismiss() }.disabled(Double(amount.replacingOccurrences(of: ",", with: ".")) == nil || description.isEmpty) } }.onChange(of: category) { _, _ in validateCategory() }.onChange(of: model.categories) { _, _ in validateCategory() }.onAppear { model.refreshConfig(); if category == "Autres" { category = model.categories.first(where: { $0.kind != "income" })?.name ?? "Autres" }; validateCategory(); person = model.people.first ?? ""; account = model.accounts.first?.name ?? "" } }
-    }
-    @ViewBuilder private func quickChip(_ title: String, category name: String, sub: String?) -> some View {
-        if let current = model.categories.first(where: { $0.name == name && $0.kind != "income" }) {
-            QuickChip(title, category: name, sub: sub.flatMap { current.subcategories.contains($0) ? $0 : nil }, description: $description, categoryValue: $category, subcategory: $subcategory)
+        }
+        .alert("La photo n’a pas pu être importée", isPresented: $importError) {
+            Button("OK", role: .cancel) {}
+        } message: { Text("Essaie une autre photo ou scanne le reçu avec la caméra.") }
+        .task(id: shouldRefresh) {
+            guard shouldRefresh else { return }
+            while !Task.isCancelled && shouldRefresh {
+                model.refreshResults()
+                guard shouldRefresh else { return }
+                do { try await Task.sleep(for: .seconds(4)) } catch { return }
+            }
         }
     }
-    private func validateCategory() {
-        if !model.categories.contains(where: { $0.name == category && $0.kind != "income" }) { category = model.categories.first(where: { $0.kind != "income" })?.name ?? "" }
-        if !(selectedCategory?.subcategories.contains(subcategory) ?? false) { subcategory = "" }
+    private var captureActions: some View {
+        VStack(spacing: 12) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                camera = true
+            } label: {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(alignment: .center, spacing: 20) {
+                        Image(systemName: "doc.viewfinder").font(.system(size: 48, weight: .light)).foregroundStyle(AppColors.ink).accessibilityHidden(true)
+                        Text("Garde le reçu au complet. Ton Mac s’occupe de le lire.").font(.subheadline).foregroundStyle(AppColors.ink2).fixedSize(horizontal: false, vertical: true)
+                    }.padding(.horizontal, 20).padding(.top, 24)
+                    Label("Scanner un reçu", systemImage: "camera").font(.headline).frame(maxWidth: .infinity, minHeight: 54)
+                        .foregroundStyle(AppColors.stampInk).background(AppColors.stamp)
+                }.background(AppColors.sheet2).clipShape(RoundedRectangle(cornerRadius: Theme.panelRadius))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.panelRadius).strokeBorder(AppColors.ruleStrong, lineWidth: 1))
+            }.buttonStyle(PressButtonStyle()).accessibilityLabel("Scanner un reçu").accessibilityHint("Ouvre la caméra pour photographier une ou plusieurs pages")
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                HStack { if importing { ProgressView() }; Label(importing ? "Importation…" : "Importer une photo", systemImage: "photo") }
+            }.buttonStyle(SecondaryButtonStyle()).disabled(importing)
+            Button { expenseForm = true } label: { Label("Ajouter sans reçu", systemImage: "square.and.pencil") }.buttonStyle(SecondaryButtonStyle())
+        }.disabled(importing)
     }
-
-}
-
-struct QuickChip: View {
-    let title: String; let cat: String; let sub: String?
-    @Binding var description: String; @Binding var categoryValue: String; @Binding var subcategory: String
-    init(_ title: String, category: String, sub: String?, description: Binding<String>, categoryValue: Binding<String>, subcategory: Binding<String>) { self.title = title; cat = category; self.sub = sub; _description = description; _categoryValue = categoryValue; _subcategory = subcategory }
-    private var isSelected: Bool { categoryValue == cat && subcategory == (sub ?? "") }
-    var body: some View {
-        Button { description = title; categoryValue = cat; subcategory = sub ?? "" } label: {
-            Text(title).font(.caption.weight(.semibold)).fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 14).padding(.vertical, 8).frame(minHeight: 44)
-                .foregroundStyle(isSelected ? .white : AppColors.text)
-                .background(isSelected ? AppColors.red : AppColors.panel).clipShape(Capsule()).contentShape(Capsule())
-        }.buttonStyle(.plain).accessibilityAddTraits(isSelected ? .isSelected : [])
+    private var allSendsButton: some View {
+        Button("Tout voir") { model.refreshResults(); model.screen = .history }
+            .font(.subheadline).frame(minHeight: 44).accessibilityLabel("Voir tous les envois")
+    }
+    private var latestSends: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) { SectionTitle(text: "Derniers envois"); Spacer(minLength: 8); allSendsButton }
+                VStack(alignment: .leading, spacing: 4) { SectionTitle(text: "Derniers envois"); allSendsButton }
+            }
+            if model.history.isEmpty {
+                Label("Ton premier reçu apparaîtra ici. Tu pourras suivre sa lecture par le Mac.", systemImage: "tray")
+                    .font(.subheadline).foregroundStyle(AppColors.ink2).ledgerCard()
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(model.history.prefix(3).enumerated()), id: \.element.id) { index, item in
+                        if index > 0 { Divider().overlay(AppColors.rule) }
+                        NavigationLink { SentReceiptDetailView(model: model, original: item) } label: { SentReceiptRow(item: item) }.buttonStyle(PressButtonStyle())
+                    }
+                }.ledgerCard(padding: 12)
+            }
+        }
     }
 }
 
@@ -167,215 +220,154 @@ struct ReviewView: View {
     @ObservedObject var model: MaVieModel
     @State private var showingPhoto = false
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack { Button { model.screen = .home; model.images = [] } label: { Image(systemName: "chevron.left") }; Text("Vérifie ton reçu").font(.title.bold()); Spacer() }
-                if let image = model.images.first {
-                    Button { showingPhoto = true } label: {
-                        Image(uiImage: image).resizable().scaledToFit().frame(maxWidth: .infinity).frame(maxHeight: 460).clipShape(RoundedRectangle(cornerRadius: 14))
-                    }.buttonStyle(.plain).accessibilityLabel("Voir le reçu en plein écran")
-                    HStack { Text("Toucher pour agrandir"); Spacer(); if model.images.count > 1 { Text("\(model.images.count) pages").bold() } }.font(.caption).foregroundStyle(AppColors.muted)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Tout est lisible ?").font(.title2.weight(.semibold))
+                        Text("Vérifie que le magasin, les articles et le total sont dans la photo.").font(.subheadline).foregroundStyle(AppColors.ink2)
+                    }
+                    if let image = model.images.first {
+                        Button { showingPhoto = true } label: {
+                            Image(uiImage: image).resizable().scaledToFit().frame(maxWidth: .infinity).frame(maxHeight: 440)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.panelRadius))
+                                .padding(12).frame(maxWidth: .infinity).background(AppColors.well, in: RoundedRectangle(cornerRadius: Theme.dialogRadius))
+                        }.buttonStyle(PressButtonStyle()).accessibilityLabel("Voir le reçu en plein écran")
+                        Label(model.images.count > 1 ? "\(model.images.count) pages · Touche pour vérifier chaque page" : "Touche la photo pour l’agrandir", systemImage: "arrow.up.left.and.arrow.down.right")
+                            .font(.caption).foregroundStyle(AppColors.ink3)
+                    }
+                    PaymentFields(people: model.people, accounts: model.accounts, person: $model.person, account: $model.account).ledgerCard()
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Une note pour plus tard").font(.headline)
+                        TextField("Facultatif", text: $model.note, axis: .vertical).lineLimit(2...5).ledgerField()
+                    }.ledgerCard()
+                    if let error = model.sendError {
+                        Label(error, systemImage: "exclamationmark.circle").font(.subheadline).foregroundStyle(AppColors.warn)
+                    }
+                    Label("Tu vérifieras les articles lus sur ton Mac avant de les ajouter au budget.", systemImage: "laptopcomputer")
+                        .font(.subheadline).foregroundStyle(AppColors.ink3)
+                }.padding(20)
+            }.scrollDismissesKeyboard(.interactively).background(AppColors.ledger)
+                .navigationTitle("Vérifie ton reçu").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { model.screen = .home; model.images = [] } label: { Label("Retour", systemImage: "chevron.left") }.frame(minHeight: 44)
+                    }
                 }
-                if !model.people.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Qui a payé ?"); Spacer()
-                            Picker("Qui a payé ?", selection: $model.person) { Text("Personne").tag(""); ForEach(model.people, id: \.self) { Text($0).tag($0) } }.pickerStyle(.menu).labelsHidden().accessibilityLabel("Qui a payé ? (facultatif)")
+                .toolbarBackground(AppColors.ledger, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
+                .safeAreaInset(edge: .bottom) {
+                    Button { Task { await model.send() } } label: {
+                        HStack(spacing: 10) {
+                            if model.isSending { ProgressView().tint(.white) }
+                            else { Image(systemName: "paperplane") }
+                            Text(model.isSending ? "Envoi en cours…" : "Envoyer au Mac")
                         }
-                        Text("Facultatif · Pour savoir à qui attribuer la dépense").font(.caption).foregroundStyle(AppColors.muted)
-                    }.padding().background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                if !model.accounts.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Payé avec"); Spacer()
-                            Picker("Payé avec", selection: $model.account) { Text("Aucun compte").tag(""); ForEach(model.accounts) { Text($0.name).tag($0.name) } }.pickerStyle(.menu).labelsHidden().accessibilityLabel("Payé avec (facultatif)")
-                        }
-                        Text("Facultatif · Le compte utilisé pour payer").font(.caption).foregroundStyle(AppColors.muted)
-                    }.padding().background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                TextField("Note (facultatif)", text: $model.note).textFieldStyle(.roundedBorder)
-                Button { Task { await model.send() } } label: {
-                    HStack { if model.isSending { ProgressView().tint(.white) }; Text(model.isSending ? "Envoi en cours…" : "Envoyer au Mac") }
-                }.buttonStyle(PrimaryButtonStyle()).disabled(model.images.isEmpty)
-            }.padding(24).disabled(model.isSending)
+                    }.buttonStyle(PrimaryButtonStyle()).disabled(model.images.isEmpty || model.isSending)
+                        .padding(16).background(AppColors.ledger)
+                }.disabled(model.isSending || model.showingSentConfirmation)
         }
         .onAppear { model.refreshConfig() }
         .fullScreenCover(isPresented: $showingPhoto) {
             NavigationStack {
                 TabView {
                     ForEach(model.images.indices, id: \.self) { index in
-                        Image(uiImage: model.images[index]).resizable().scaledToFit().padding(.bottom, 40).accessibilityLabel("Page \(index + 1) sur \(model.images.count)")
+                        Image(uiImage: model.images[index]).resizable().scaledToFit().padding(.bottom, 40)
+                            .accessibilityLabel("Page \(index + 1) sur \(model.images.count)")
                     }
-                }.tabViewStyle(.page(indexDisplayMode: model.images.count > 1 ? .always : .never)).background(AppColors.background)
+                }.tabViewStyle(.page(indexDisplayMode: model.images.count > 1 ? .always : .never)).background(AppColors.ledger)
                     .navigationTitle(model.images.count > 1 ? "\(model.images.count) pages" : "Reçu").navigationBarTitleDisplayMode(.inline)
-                    .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Fermer") { showingPhoto = false } } }
-                    .toolbarBackground(AppColors.background, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
+                    .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Fermer") { showingPhoto = false }.frame(minHeight: 44) } }
+                    .toolbarBackground(AppColors.ledger, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
             }.preferredColorScheme(.dark)
         }
     }
 }
 
-struct HistoryView: View {
-    @ObservedObject var model: MaVieModel
-    @Environment(\.scenePhase) private var scenePhase
-    private var shouldRefreshResults: Bool { scenePhase == .active && model.screen == .history && model.history.contains { $0.result == nil } }
+private struct SentConfirmation: View {
+    let queued: Bool
+    let finish: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var stamped = false
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(model.history) { item in
-                    NavigationLink { SentReceiptDetailView(model: model, original: item) } label: { SentReceiptRow(item: item) }
-                        .listRowBackground(AppColors.panel)
-                }
-            }.scrollContentBackground(.hidden).refreshable { model.refreshResults() }
-            .navigationTitle("Historique")
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Accueil") { model.screen = .home } } }
-        }
-        .task(id: shouldRefreshResults) {
-            guard shouldRefreshResults else { return }
-            while !Task.isCancelled && shouldRefreshResults {
-                model.refreshResults()
-                guard shouldRefreshResults else { return }
-                do { try await Task.sleep(for: .seconds(4)) } catch { return }
-            }
-        }
-    }
-}
-
-private extension SentReceipt {
-    var displayTitle: String {
-        [result?.store, result?.description, sentDescription].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.first { !$0.isEmpty } ?? (kind == "expense" ? "Dépense" : "Reçu")
-    }
-    var displayAmount: Double? { result?.total ?? result?.amount ?? sentAmount }
-    var hasError: Bool { result?.status?.lowercased() == "error" || result?.error != nil }
-    var statusTitle: String { result == nil ? "En attente du Mac" : hasError ? "Erreur" : result?.status?.lowercased() == "added" ? "Ajoutée" : "Lu" }
-    var statusTint: Color { result == nil ? AppColors.muted : hasError ? .red : .green }
-    var fallbackIcon: String { kind == "expense" ? "creditcard" : "doc.text.image" }
-}
-
-private struct SentStatusBadge: View {
-    let item: SentReceipt
-    var body: some View {
-        Text(item.statusTitle).font(.caption.weight(.semibold)).foregroundStyle(item.statusTint)
-            .padding(.horizontal, 8).padding(.vertical, 4).background(item.statusTint.opacity(0.15)).clipShape(Capsule())
-    }
-}
-
-private struct SentReceiptRow: View {
-    let item: SentReceipt
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Group {
-                if let image = SentMediaStore.thumbnail(id: item.id) { Image(uiImage: image).resizable().scaledToFill() }
-                else { Image(systemName: item.fallbackIcon).font(.title2).foregroundStyle(AppColors.muted).frame(maxWidth: .infinity, maxHeight: .infinity).background(AppColors.background) }
-            }.frame(width: 54, height: 68).clipShape(RoundedRectangle(cornerRadius: 8)).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(item.displayTitle).font(.headline).foregroundStyle(AppColors.text).lineLimit(2)
-                Text(sentDate(item.sentAt)).font(.caption).foregroundStyle(AppColors.muted)
-                if let amount = item.displayAmount { Text(money(amount)).font(.subheadline.weight(.semibold)).foregroundStyle(AppColors.text) }
-                SentStatusBadge(item: item)
-                if item.result == nil { Text("Mise à jour automatique").font(.caption2).foregroundStyle(AppColors.muted) }
-            }
-        }.padding(.vertical, 4)
-    }
-}
-
-private struct SentReceiptDetailView: View {
-    @ObservedObject var model: MaVieModel
-    let original: SentReceipt
-    private var item: SentReceipt { model.history.first { $0.id == original.id } ?? original }
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                Text(item.displayTitle).font(.title2.bold())
-                Text(sentDate(item.sentAt)).font(.subheadline).foregroundStyle(AppColors.muted)
-                SentStatusBadge(item: item)
-                if item.hasError { Text(item.result?.error ?? "Le Mac n’a pas pu lire le reçu.").foregroundStyle(.red).textSelection(.enabled) }
-                else if item.result == nil { Text("Le résultat apparaîtra automatiquement dès que le Mac aura traité cet envoi.").font(.subheadline).foregroundStyle(AppColors.muted) }
-                VStack(alignment: .leading, spacing: 10) {
-                    if let store = item.result?.store { detail("Magasin", store) }
-                    if let description = item.result?.description ?? item.sentDescription { detail("Description", description) }
-                    if let amount = item.displayAmount { detail("Total", money(amount)) }
-                    if let count = item.result?.itemsCount { detail("Articles", String(count)) }
-                    if let category = item.result?.category { detail("Catégorie", category) }
-                    detail("Personne", item.person ?? "Non renseignée")
-                    detail("Compte", item.accountName ?? "Non renseigné")
-                    detail("Note", item.note ?? "Aucune")
-                }.padding(14).frame(maxWidth: .infinity, alignment: .leading).background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
-                if let count = item.pageCount, count > 0 {
-                    ForEach(0..<count, id: \.self) { page in
-                        SentReceiptPage(url: SentMediaStore.pageURL(id: item.id, page: page), page: page, count: count)
+        ZStack {
+            AppColors.ledger.opacity(0.96).ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 24) {
+                    ReceiptStrip {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("MaVie").fontWeight(.bold)
+                            Stamp(text: queued ? "CONSERVÉ" : "ENVOYÉ")
+                                .scaleEffect(reduceMotion || stamped ? 1 : 0.95).opacity(stamped ? 1 : 0)
+                            Text(queued ? "Ton reçu reste sur cet iPhone. MaVie réessaiera l’envoi au prochain retour dans l’app." : "Ton reçu est prêt pour ton Mac. Suis sa lecture dans Envois.")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                } else {
-                    VStack(spacing: 10) {
-                        Image(systemName: item.fallbackIcon).font(.system(size: 40))
-                        Text(item.kind == "expense" ? "Dépense sans reçu" : "Aucune copie locale pour cet envoi")
-                    }.font(.subheadline).foregroundStyle(AppColors.muted).frame(maxWidth: .infinity).padding(.vertical, 28)
-                }
-            }.padding(20)
-        }.background(AppColors.background).navigationTitle("Détail de l’envoi").navigationBarTitleDisplayMode(.inline)
+                    Button("Retour à l’accueil", action: finish).buttonStyle(SecondaryButtonStyle())
+                }.padding(28)
+            }.scrollBounceBehavior(.basedOnSize)
+        }.accessibilityAddTraits(.isModal)
+            .task {
+                withAnimation(reduceMotion ? nil : Theme.motion) { stamped = true }
+                // VoiceOver et une mise en attente demandent le temps de lire le message.
+                guard !UIAccessibility.isVoiceOverRunning && !queued else { return }
+                do { try await Task.sleep(for: .milliseconds(1400)) } catch { return }
+                finish()
+            }
     }
-    private func detail(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) { Text(label).font(.caption).foregroundStyle(AppColors.muted); Text(value).font(.subheadline).textSelection(.enabled) }
-    }
-}
-
-private struct SentReceiptPage: View {
-    let url: URL
-    let page: Int
-    let count: Int
-    @State private var image: UIImage?
-    @GestureState private var magnification: CGFloat = 1
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if count > 1 { Text("Page \(page + 1) sur \(count)").font(.caption).foregroundStyle(AppColors.muted) }
-            if let image {
-                Image(uiImage: image).resizable().scaledToFit().scaleEffect(magnification)
-                    .gesture(MagnifyGesture().updating($magnification) { value, scale, _ in scale = min(max(value.magnification, 1), 4) })
-                    .clipped().accessibilityLabel("Photo du reçu, page \(page + 1)")
-                Text("Pincez pour agrandir").font(.caption2).foregroundStyle(AppColors.muted)
-            } else { Label("Copie locale indisponible", systemImage: "photo").foregroundStyle(AppColors.muted) }
-        }.task(id: url) { image = UIImage(contentsOfFile: url.path) }
-    }
-}
-
-private func sentDate(_ date: Date) -> String {
-    let calendar = Calendar.current
-    let formatter = DateFormatter(); formatter.locale = Locale(identifier: "fr_CA"); formatter.dateFormat = "H 'h' mm"
-    let time = formatter.string(from: date)
-    if calendar.isDateInToday(date) { return "Aujourd’hui \(time)" }
-    if calendar.isDateInYesterday(date) { return "Hier \(time)" }
-    formatter.dateFormat = calendar.component(.year, from: date) == calendar.component(.year, from: Date()) ? "d MMM" : "d MMM yyyy"
-    return "\(formatter.string(from: date)) \(time)"
-}
-
-private func money(_ value: Double) -> String { let formatter = NumberFormatter(); formatter.locale = Locale(identifier: "fr_CA"); formatter.numberStyle = .currency; formatter.currencySymbol = "$"; return formatter.string(from: NSNumber(value: value)) ?? "\(value) $" }
-private func relativeDate(_ date: Date) -> String { let minutes = max(0, Int(Date().timeIntervalSince(date) / 60)); return minutes < 1 ? "à l'instant" : "il y a \(minutes) min" }
-
-extension Color {
-    init(hex: String) { let value = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0; self.init(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255) }
 }
 
 struct SettingsView: View {
     @ObservedObject var model: MaVieModel
     @State private var picker = false
+    @State private var confirmClear = false
+    private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0" }
+    private var build: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1" }
+    private var folderName: String { model.folder.folderURL?.lastPathComponent ?? "MaVie" }
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Dossier iCloud") { Text(model.folder.folderURL?.path ?? "Aucun dossier choisi").font(.caption).foregroundStyle(AppColors.muted); Button("Changer de dossier") { picker = true } }
-                Section("Données") { Button("Vider l'historique", role: .destructive) { UserDefaults.standard.removeObject(forKey: "history"); model.clearHistory() } }
-                Section("À propos") { Text("MaVie 1.0.0"); Text("Ton Mac lit les reçus déposés dans MaVie/A-traiter.").font(.caption).foregroundStyle(AppColors.muted) }
-            }.scrollContentBackground(.hidden).background(AppColors.background).navigationTitle("Réglages").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .topBarLeading) { Button { model.screen = .home } label: { Label("Retour", systemImage: "chevron.left").labelStyle(.titleAndIcon) } } }
-                .toolbarBackground(AppColors.background, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    HStack(spacing: 16) {
+                        Image("Logo").resizable().scaledToFit().frame(width: 52, height: 52).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(model.config.householdName ?? "MaVie").font(.title2.weight(.semibold))
+                            Text("Ton iPhone et ton Mac, reliés.").font(.subheadline).foregroundStyle(AppColors.ink3)
+                        }
+                    }.padding(.vertical, 8)
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionTitle(text: "Dossier partagé")
+                        Label("iCloud Drive › \(folderName)", systemImage: "folder").font(.body.weight(.medium))
+                            .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                        Text("Choisis le même dossier MaVie que sur ton Mac pour y retrouver tes envois.").font(.subheadline).foregroundStyle(AppColors.ink2)
+                        Button("Changer de dossier") { picker = true }.buttonStyle(SecondaryButtonStyle())
+                    }.ledgerCard()
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionTitle(text: "Sur cet iPhone")
+                        ValueRow(label: "Envois conservés", value: "\(model.history.count) / 30")
+                        Text("Vider l’historique efface les copies locales des photos. Les fichiers iCloud et les données du Mac restent en place.")
+                            .font(.subheadline).foregroundStyle(AppColors.ink2)
+                        Button(role: .destructive) { confirmClear = true } label: { Label("Vider l’historique", systemImage: "trash").frame(minHeight: 44) }
+                            .disabled(model.history.isEmpty)
+                    }.ledgerCard()
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionTitle(text: "À propos")
+                        ValueRow(label: "MaVie pour iPhone", value: "\(version) (\(build))")
+                        Text("Ton iPhone garde les reçus. Ton Mac lit les articles et prépare ton budget. Tu gardes le dernier mot sur chaque achat.")
+                            .font(.subheadline).foregroundStyle(AppColors.ink2)
+                    }.ledgerCard()
+                }.padding(20)
+            }.background(AppColors.ledger).navigationTitle("Réglages").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { model.screen = .home } label: { Label("Retour", systemImage: "chevron.left").labelStyle(.titleAndIcon) }.frame(minHeight: 44)
+                    }
+                }
+                .toolbarBackground(AppColors.ledger, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
                 .background(DocumentPickerPresenter(store: model.folder, isPresented: $picker).frame(width: 0, height: 0))
+                .confirmationDialog("Vider l’historique de cet iPhone ?", isPresented: $confirmClear, titleVisibility: .visible) {
+                    Button("Vider l’historique", role: .destructive) { model.clearHistory(); UINotificationFeedbackGenerator().notificationOccurred(.success) }
+                    Button("Annuler", role: .cancel) {}
+                } message: { Text("Les copies locales des reçus seront effacées. Tes données sur le Mac et dans iCloud seront conservées.") }
         }
     }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { configuration.label.foregroundStyle(.white).frame(maxWidth: .infinity).padding().background(AppColors.red.opacity(configuration.isPressed ? 0.75 : 1)).clipShape(RoundedRectangle(cornerRadius: 14)) }
-}
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { configuration.label.foregroundStyle(AppColors.text).padding().frame(maxWidth: .infinity).background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12)) }
 }
