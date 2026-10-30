@@ -96,3 +96,15 @@ Toutes les réponses sont du JSON. Une erreur renvoie `{error:string}` avec un s
   - légende dès qu'il y a 2 séries ou plus, avec des étiquettes directes choisies (pas de chiffre sur chaque point) ;
   - **jamais deux axes Y** ;
   - le texte reste en couleur de texte, jamais en couleur de série.
+
+## v1.1 : suivi sur iPhone et dépenses sans reçu (contrat iPhone ↔ Mac, en plus de ce qui précède)
+- **Dépense sans reçu, écrite sur le téléphone** : le téléphone dépose `A-traiter/<nom>.expense.json` (nom temporaire commençant par « . », puis renommage atomique), avec :
+  `{kind:"expense", type:"expense"|"income", amount:number, description:string, category:string, subcategory:string|null, person:string|null, accountName:string|null, date:"YYYY-MM-DD", note:string|null, createdAt:ISO}`.
+  - Le Mac crée **directement** la dépense, sans Gemini, avec `source='phone'`. Une catégorie inconnue est remplacée par « Autres ».
+  - Il déplace le fichier dans `Traites/` et écrit `Traites/<nom>.result.json` = `{status:"added", expenseId, description, amount, category}`, ou `{status:"error", error}` en cas d'échec.
+  - Un même nom n'est jamais importé deux fois.
+- **Une photo de facture sans articles** (essence, stationnement…) passe par le flux photo habituel. Gemini renvoie alors un seul article (exemple : « Essence », catégorie Transport › Essence).
+- **`MaVie/config.json`** gagne `categories:[{name, kind, color, subcategories:[name]}]`, pour que le formulaire du téléphone propose les mêmes catégories.
+- **`MaVie/resume.json`** est écrit par le Mac au démarrage, après chaque import ou confirmation, après chaque modification de dépense, et au minimum toutes les 5 minutes. Il contient :
+  `{updatedAt, householdName, month:"YYYY-MM", monthLabel:"octobre 2026", spent, income, remaining (revenus − dépenses, ou null s'il n'y a aucun revenu), budgetTotal|null, byCategory:[{name,color,total,pct}] (8 au maximum + Autres), upcomingFixed:[{name,amount,date,status:"paid"|"upcoming",type}] (ce mois-ci), recent:[{date,description,store,amount,type,category,color,source}] (20 dernières), pendingReceipts, previousMonthSpent}`.
+- **Côté Mac**, « Ajouter une dépense sans reçu » doit être accessible en un clic (bouton bien visible sur l'Accueil et dans /ajouter). Formulaire court : montant, description, catégorie, sous-catégorie, date (aujourd'hui par défaut), personne, compte. Des puces rapides pré-remplissent la catégorie : Essence, Épicerie, Restaurant, Café, Stationnement, Pharmacie.

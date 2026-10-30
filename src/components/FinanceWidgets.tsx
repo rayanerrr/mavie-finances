@@ -12,7 +12,7 @@ export function StateLabel({ state }: { state: "ok" | "warn" | "over"; }) {
   return <span className={`state-label state-${state}`} aria-label={content}>{content}</span>;
 }
 
-export type RailItem = { date: string; name: string; amount: number; paid?: boolean };
+export type RailItem = { date: string; name: string; amount: number; status?: "paid" | "upcoming"; paid?: boolean };
 
 export function MonthRail({ items = [], month = new Date().toISOString().slice(0, 7) }: { items?: RailItem[]; month?: string }) {
   const days = new Date(Number(month.slice(0, 4)), Number(month.slice(5)) , 0).getDate();
@@ -21,7 +21,7 @@ export function MonthRail({ items = [], month = new Date().toISOString().slice(0
   return <section className="month-rail" aria-label={`Rail des dépenses fixes de ${month}`}>
     <div className="rail-track">
       {todayPosition && <div className="rail-today" style={{ left: `${((todayPosition - 1) / Math.max(days - 1, 1)) * 100}%` }}><span>Aujourd’hui</span></div>}
-      {items.map((item) => { const day = Number(item.date.slice(-2)); return <Link key={`${item.name}-${item.date}`} href="/depenses-fixes" className={`rail-marker ${item.paid ? "paid" : ""}`} style={{ left: `${((day - 1) / Math.max(days - 1, 1)) * 100}%` }} title={`${item.name} · ${formatMoneyShort(item.amount)}`}><i aria-hidden="true" /></Link>; })}
+      {items.map((item) => { const day = Number(item.date.slice(-2)); const paid = item.status === "paid" || item.paid; return <Link key={`${item.name}-${item.date}`} href="/depenses-fixes" className={`rail-marker ${paid ? "paid" : "upcoming"}`} style={{ left: `${((day - 1) / Math.max(days - 1, 1)) * 100}%` }} title={`${item.name} · ${formatMoneyShort(item.amount)}`} aria-label={`${item.name}, ${formatMoneyShort(item.amount)}, ${paid ? "payé" : "à venir"}`}><i aria-hidden="true" /></Link>; })}
     </div>
     <div className="rail-labels"><span>1</span><span>15</span><span>{days}</span></div>
   </section>;

@@ -90,6 +90,7 @@
           "path": "/Applications"
         }
       ]
-    }
+    },
+    "afterPack": "desktop/after-pack.cjs"
   }
 }

@@ -30,12 +30,19 @@ export function nextDate(item: Recurring, from = todayDate()): string | null {
 function datesThrough(item: Recurring, until: string) {
   const dates: string[] = [];
   if (!item.active) return dates;
+  // Les échéances hebdomadaires et bimensuelles sont calculées depuis startDate,
+  // puis filtrées sur la période demandée : aucune occurrence ne doit être perdue
+  // quand un mois contient trois paies aux deux semaines.
   for (let i=0; i<120000; i++) {
     const date = occurrence(item,i);
     if (date > until || (item.endDate && date > item.endDate)) break;
     if (date >= item.startDate) dates.push(date);
   }
   return dates;
+}
+function monthEnd(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 }
 export function materializeRecurring(today = todayDate()) {
   if (!validDate(today)) throw new Error("Date invalide");
@@ -80,6 +87,6 @@ export function upcoming(monthKey: string) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) throw new Error("Mois invalide");
   const paid = db.select().from(expenses).all();
   const cats = db.select().from(categories).all();
-  const items = db.select().from(recurring).all().flatMap(item => datesThrough(item,monthKey+"-31").filter(d=>d.startsWith(monthKey)).map(date => ({recurringId:item.id,name:item.name,amount:item.amount,type:item.type,date,categoryName:cats.find(c=>c.id===item.categoryId)?.name,categoryColor:cats.find(c=>c.id===item.categoryId)?.color,status:paid.some(e=>e.recurringId===item.id && e.date===date) ? "paid" as const : "upcoming" as const}))).sort((a,b)=>a.date.localeCompare(b.date));
+  const items = db.select().from(recurring).all().flatMap(item => datesThrough(item,monthEnd(monthKey)).filter(d=>d.startsWith(monthKey)).map(date => ({recurringId:item.id,name:item.name,amount:item.amount,type:item.type,date,categoryName:cats.find(c=>c.id===item.categoryId)?.name,categoryColor:cats.find(c=>c.id===item.categoryId)?.color,status:paid.some(e=>e.recurringId===item.id && e.date===date) ? "paid" as const : "upcoming" as const}))).sort((a,b)=>a.date.localeCompare(b.date));
   return {items,totals:{expense:items.filter(i=>i.type==="expense").reduce((s,i)=>s+i.amount,0),income:items.filter(i=>i.type==="income").reduce((s,i)=>s+i.amount,0)}};
 }

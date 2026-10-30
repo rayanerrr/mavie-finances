@@ -28,7 +28,7 @@ struct DocumentPickerPresenter: UIViewControllerRepresentable {
     @ObservedObject var store: FolderStore
     @Binding var isPresented: Bool
     func makeUIViewController(context: Context) -> Presenter { Presenter(store: store, isPresented: $isPresented) }
-    func updateUIViewController(_ controller: Presenter, context: Context) { controller.update(isPresented: isPresented) }
+    func updateUIViewController(_ controller: Presenter, context: Context) { controller.update(isPresented: $isPresented) }
     final class Presenter: UIViewController {
         let store: FolderStore
         var isPresented: Binding<Bool>

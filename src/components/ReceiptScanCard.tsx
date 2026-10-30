@@ -66,7 +66,10 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   const loadReceipt = useCallback(async (id?: number) => {
     if (id) {
       const res = await fetch(`/api/receipts/${id}`);
-      if (res.ok) setReceipt(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setReceipt(json.receipt);
+      }
       return;
     }
     const res = await fetch("/api/receipts");
@@ -96,12 +99,14 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
     })();
   }, [loadReceipt]);
 
+  const receiptStatus = receipt?.status;
+  const receiptId = receipt?.id;
   useEffect(() => {
-    if (receipt?.status !== "pending") return;
-    const id = receipt.id;
+    if (!receiptId || !receiptStatus || !["pending", "analyzing"].includes(receiptStatus)) return;
+    const id = receiptId;
     const timer = setInterval(async () => { await loadReceipt(id); }, 2000);
     return () => clearInterval(timer);
-  }, [receipt?.status, receipt?.id, loadReceipt]);
+  }, [receiptStatus, receiptId, loadReceipt]);
 
   async function upload(file: File) {
     setBusy(true);

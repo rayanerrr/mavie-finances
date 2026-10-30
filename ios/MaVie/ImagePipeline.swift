@@ -26,6 +26,6 @@ enum ImagePipeline {
         guard max(image.size.width, image.size.height) > maxSide else { return image }
         let scale = maxSide / max(image.size.width, image.size.height)
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        return UIGraphicsImageRenderer(size: size).image { image.draw(in: CGRect(origin: .zero, size: size)) }
+        return UIGraphicsImageRenderer(size: size).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
     }
 }

@@ -26,7 +26,7 @@ final class FolderStore: NSObject, ObservableObject, UIDocumentPickerDelegate {
             folderURL = url
             folderURL?.startAccessingSecurityScopedResource()
             defer { folderURL?.stopAccessingSecurityScopedResource() }
-            let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+            let bookmark = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
             UserDefaults.standard.selectedFolderBookmark = bookmark
             try createDirectories(at: url)
             pickerCompletion?(true)
@@ -48,9 +48,11 @@ final class FolderStore: NSObject, ObservableObject, UIDocumentPickerDelegate {
         let coordinator = NSFileCoordinator(filePresenter: nil)
         var value: T?
         var caught: Error?
-        coordinator.coordinate(readingItemAt: url, options: [], error: &caught) { coordinatedURL in
+        var coordinationError: NSError?
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinatedURL in
             do { value = try operation(coordinatedURL) } catch { caught = error }
         }
+        if caught == nil, let coordinationError { caught = coordinationError }
         return value
     }
 
@@ -64,9 +66,9 @@ final class FolderStore: NSObject, ObservableObject, UIDocumentPickerDelegate {
         guard let data = UserDefaults.standard.selectedFolderBookmark else { return }
         var stale = false
         do {
-            let url = try URL(resolvingBookmarkData: data, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+            let url = try URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
             folderURL = url
-            if stale { UserDefaults.standard.selectedFolderBookmark = try url.bookmarkData(options: .withSecurityScope) }
+            if stale { UserDefaults.standard.selectedFolderBookmark = try url.bookmarkData(options: []) }
             try? createDirectories(at: url)
         } catch { folderURL = nil }
     }
