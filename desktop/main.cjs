@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Notification, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, Notification, ipcMain, shell, dialog, nativeTheme } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');
@@ -117,8 +117,9 @@ async function poll() {
 }
 function polling() { if (!smoke) { poll().catch(log); timer = setInterval(() => poll().catch(log), 20000); } }
 function createWindow() {
+  nativeTheme.themeSource = 'dark';
   window = new BrowserWindow({ width: 1440, height: 920, minWidth: 1100, minHeight: 720, show: !smoke,
-    title: 'MaVie', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 16, y: 18 }, backgroundColor: '#0d0f13',
+    title: 'MaVie', backgroundColor: '#0d0f13',
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, paintWhenInitiallyHidden: true, backgroundThrottling: !smoke } });
   window.webContents.setWindowOpenHandler(({ url }) => { if (local(url)) window.loadURL(url).catch(log); else external(url); return { action: 'deny' }; });
   for (const event of ['will-navigate', 'will-redirect', 'will-frame-navigate']) {
