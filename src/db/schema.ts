@@ -53,6 +53,9 @@ export const expenses = sqliteTable("expenses", {
   recurringId: integer("recurring_id"),
   type: text("type").notNull().default("expense"),
   merchantKey: text("merchant_key"),
+  quantity: real("quantity"),
+  unit: text("unit"),
+  time: text("time"),
   notes: text("notes"),
   source: text("source").notNull().default("text"),
   createdAt: text("created_at")
@@ -100,7 +103,7 @@ export const receipts = sqliteTable("receipts", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
-  purchaseDate: text("purchase_date"), total: real("total"), subtotal: real("subtotal"), taxes: real("taxes"),
+  purchaseDate: text("purchase_date"), purchaseTime: text("purchase_time"), total: real("total"), subtotal: real("subtotal"), taxes: real("taxes"),
   origin: text("origin").notNull().default("upload"), error: text("error"), aiRaw: text("ai_raw"), model: text("model"), inboxKey: text("inbox_key"),
   analyzedAt: text("analyzed_at"),
   confirmedAt: text("confirmed_at"),
@@ -115,7 +118,7 @@ export const receiptItems = sqliteTable("receipt_items", {
   amount: real("amount").notNull(),
   category: text("category"),
   subcategory: text("subcategory"),
-  quantity: real("quantity"), rawText: text("raw_text"), confidence: real("confidence"),
+  quantity: real("quantity"), unit: text("unit"), rawText: text("raw_text"), confidence: real("confidence"),
   accepted: integer("accepted").notNull().default(1),
 });
 

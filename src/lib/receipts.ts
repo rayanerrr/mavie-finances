@@ -8,6 +8,7 @@ import path from "path";
 import { db, paths } from "@/db";
 import { categories, subcategories, expenses, receiptItems, receipts } from "@/db/schema";
 import { getDefaultAccountId } from "@/lib/accounts";
+import { normalizeQuantity } from "@/lib/units";
 
 export function listReceipts(status?: string) {
   const rows = status
@@ -78,6 +79,7 @@ export function analyzeReceipt(
   id: number,
   payload: {
     purchaseDate?: string | null;
+    purchaseTime?: string | null;
     total?: number | null;
     subtotal?: number | null;
     taxes?: number | null;
@@ -90,6 +92,7 @@ export function analyzeReceipt(
       quantity?: number | null;
       rawText?: string | null;
       confidence?: number | null;
+      unit?: string | null;
       description: string;
       amount: number;
       category?: string | null;
@@ -109,7 +112,8 @@ export function analyzeReceipt(
     db.insert(receiptItems)
       .values({
         receiptId: id,
-        quantity: item.quantity, rawText: item.rawText, confidence: item.confidence,
+      quantity: item.quantity, rawText: item.rawText, confidence: item.confidence,
+        unit: item.unit ?? null,
         description: item.description,
         amount: item.amount,
         category: item.category ?? null,
@@ -123,7 +127,7 @@ export function analyzeReceipt(
     .update(receipts)
     .set({
       status: "analyzed", error: null,
-      purchaseDate: payload.purchaseDate, total: payload.total, subtotal: payload.subtotal, taxes: payload.taxes, model: payload.model, aiRaw: payload.raw,
+      purchaseDate: payload.purchaseDate, purchaseTime: payload.purchaseTime ?? null, total: payload.total, subtotal: payload.subtotal, taxes: payload.taxes, model: payload.model, aiRaw: payload.raw,
       store: payload.store ?? receipt.store,
       person: payload.person ?? receipt.person,
       accountId: payload.accountId ?? receipt.accountId,
@@ -151,7 +155,8 @@ export async function confirmReceipt(id: number) {
       if (!category) throw new Error("Catégorie inconnue");
       const sub = db.select().from(subcategories).all().find(s=>s.categoryId===category.id && s.name===item.subcategory);
       const date = current.purchaseDate || todayDate();
-      const row = db.insert(expenses).values({date,monthKey:date.slice(0,7),amount:item.amount,description:item.description,store:current.store,person:current.person,categoryId:category.id,subcategoryId:sub?.id ?? null,accountId:current.accountId,receiptId:id,source:"receipt",type:"expense"}).returning().get();
+      const measure = normalizeQuantity(item.quantity, item.unit);
+      const row = db.insert(expenses).values({date, time: current.purchaseTime, quantity: measure.quantity, unit: measure.unit, monthKey:date.slice(0,7),amount:item.amount,description:item.description,store:current.store,person:current.person,categoryId:category.id,subcategoryId:sub?.id ?? null,accountId:current.accountId,receiptId:id,source:"receipt",type:"expense"}).returning().get();
       learnRule(item.description,current.store,category.name,sub?.name ?? null);
       if (item.rawText && item.rawText !== item.description) learnRule(item.rawText,current.store,category.name,sub?.name ?? null);
       return row;

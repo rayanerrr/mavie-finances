@@ -15,6 +15,8 @@ async function main() {
   const { eq } = await import("drizzle-orm");
   const { materializeRecurring, nextDate, monthlyEquivalent, saveRecurring, upcoming, todayDate } = await import("../src/lib/recurring");
   const { normalizeDescription } = await import("../src/lib/category-rules");
+  const { createExpenses } = await import("../src/lib/expenses");
+  const { subcategoryAnalytics } = await import("../src/lib/subcategory-analytics");
   const { getAllSettings, setSetting } = await import("../src/lib/settings");
   const { seedCore } = await import("../src/db/seed-core");
   assert.equal(paths.dataDir, testDir);
@@ -40,6 +42,11 @@ async function main() {
   assert.equal(monthlyEquivalent(12,"biweekly"),26);
   assert.equal(monthlyEquivalent(120,"yearly"),10);
   assert.equal(normalizeDescription("  ÉPICERIE -- Poulet 123,  500g! "),"epicerie poulet g");
+  const measured = await createExpenses([{date: todayDate(), amount: 4.5, description: "Test mesuré", category: "Alimentation", quantity: 500, unit: "g", time: "9:05"}]);
+  assert.equal(measured[0].quantity, 0.5);
+  assert.equal(measured[0].unit, "kg");
+  assert.equal(measured[0].time, "09:05");
+  assert.ok(subcategoryAnalytics(db.select().from(categories).all().find((c) => c.name === "Alimentation")!.id, todayDate().slice(0, 7)));
   setSetting("geminiApiKey","secret-test-abcd");
   const safe = getAllSettings();
   assert.equal(safe.geminiConfigured,true);
@@ -50,11 +57,14 @@ async function main() {
   setSetting("geminiApiKey","");
   const { createReceiptFromFile, analyzeReceipt, confirmReceipt, getReceipt, deleteReceipt } = await import("../src/lib/receipts");
   const receipt = createReceiptFromFile({filename:"test.png",mime:"image/png",buffer:Buffer.from("test")});
-  analyzeReceipt(receipt.id,{store:"Maxi",purchaseDate:"2026-09-10",total:10,items:[{description:"Poulet",amount:10,category:"Alimentation",subcategory:"Poulet"}]});
+  analyzeReceipt(receipt.id,{store:"Maxi",purchaseDate:"2026-09-10",purchaseTime:"18:30",total:10,items:[{description:"Poulet",amount:10,category:"Alimentation",subcategory:"Poulet",quantity:500,unit:"g"}]});
   assert.equal(getReceipt(receipt.id)?.difference,0);
   const confirmations = await Promise.all([confirmReceipt(receipt.id),confirmReceipt(receipt.id)]);
   assert.equal(confirmations.reduce((s,c)=>s+c.created.length,0),1);
   assert.equal(confirmations[0].created[0].date,"2026-09-10");
+  assert.equal(confirmations[0].created[0].quantity,0.5);
+  assert.equal(confirmations[0].created[0].unit,"kg");
+  assert.equal(confirmations[0].created[0].time,"18:30");
   assert.equal(db.select().from(categoryRules).all()[0].hits,1);
   deleteReceipt(receipt.id);
   assert.equal(db.select().from(expenses).where(eq(expenses.receiptId,receipt.id)).all().length,1);
@@ -76,7 +86,7 @@ async function main() {
   const config=JSON.parse(fs.readFileSync(path.join(process.env.MAVIE_INBOX_DIR!,"config.json"),"utf8"));
   assert.ok(config.categories.some((category:{name:string;subcategories:string[]})=>category.name==="Restaurants" && category.subcategories.includes("Café")));
   writePhoneSummary();
-  const summary=JSON.parse(fs.readFileSync(path.join(testDir,"resume.json"),"utf8"));
+  const summary=JSON.parse(fs.readFileSync(path.join(process.env.MAVIE_INBOX_DIR!,"resume.json"),"utf8"));
   assert.equal(summary.spent,Math.round((beforePhone + 12.34) * 100) / 100);
   assert.equal(summary.recent[0].description,"Café téléphone");
   assert.equal(summary.recent[0].source,"phone");
@@ -108,4 +118,4 @@ async function main() {
   } else console.log("Gemini réel non exécuté : aucune clé dans .env.local ou l'environnement.");
   console.log("Dossier temporaire :",testDir);
 }
-main().catch(error=>{console.error(error instanceof Error ? error.message : "Échec des tests");process.exitCode=1;});
+main().then(() => process.exit(0)).catch(error=>{console.error(error instanceof Error ? error.message : "Échec des tests");process.exitCode=1;});

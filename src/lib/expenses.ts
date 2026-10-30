@@ -9,6 +9,7 @@ import { merchantKeyFromStore } from "@/lib/merchants";
 import { monthKeyFromDate } from "@/lib/money";
 import { matchRule } from "@/lib/category-admin";
 import { slugify } from "@/lib/slug";
+import { normalizeQuantity } from "@/lib/units";
 
 export type ExpenseInput = {
   date: string;
@@ -26,6 +27,9 @@ export type ExpenseInput = {
   receiptId?: number | null;
   merchantKey?: string | null;
   categoryKind?: "essential" | "discretionary" | "income";
+  quantity?: number | null;
+  unit?: string | null;
+  time?: string | null;
 };
 
 export type ExpenseFilters = {
@@ -79,6 +83,9 @@ export function listExpenses(filters: ExpenseFilters = {}) {
       subcategoryId: expenses.subcategoryId,
       accountId: expenses.accountId,
       receiptId: expenses.receiptId,
+      quantity: expenses.quantity,
+      unit: expenses.unit,
+      time: expenses.time,
       categoryName: categories.name,
       categoryColor: categories.color,
       categoryKind: categories.kind,
@@ -121,6 +128,10 @@ export async function createExpenses(items: ExpenseInput[]) {
     const monthKey = item.monthKey ?? monthKeyFromDate(item.date);
     const merchantKey =
       item.merchantKey ?? merchantKeyFromStore(item.store) ?? null;
+    const measure = normalizeQuantity(item.quantity, item.unit);
+    const time = item.time && /^\d{1,2}:\d{2}$/.test(item.time)
+      ? item.time.padStart(5, "0")
+      : null;
 
     const row = db
       .insert(expenses)
@@ -137,6 +148,9 @@ export async function createExpenses(items: ExpenseInput[]) {
         receiptId: item.receiptId ?? null,
         type,
         merchantKey,
+        quantity: measure.quantity,
+        unit: measure.unit,
+        time,
         notes: item.notes ?? null,
         source: item.source ?? "text",
       })
