@@ -22,6 +22,8 @@ export ELECTRON_CACHE="${ELECTRON_CACHE:-$HOME/Library/Caches/electron}"
 echo '1/7 · Copie isolée du projet'
 rsync -a --delete --exclude=.mavie-build --exclude=.git --exclude=node_modules --exclude=.next --exclude=data --exclude='.env*' --exclude=ios --exclude=dist "$SRC/" "$BUILD/"
 cd "$BUILD"
+# Repartir propre : un ancien dist/ serait embarqué dans le serveur et casserait la signature.
+rm -rf dist .next
 echo '2/7 · Installation des dépendances'
 npm ci
 # npm peut conserver l’archive Electron sans exécuter son extraction.
