@@ -1,83 +1,28 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  IconBars,
-  IconBudget,
-  IconChart,
-  IconCloud,
-  IconFlag,
-  IconHome,
-  IconList,
-  IconPlusCircle,
-  IconReceipt,
-  IconReport,
-  IconSettings,
-  IconTag,
-  IconWallet,
-} from "@/components/icons";
-
-const NAV = [
-  { href: "/", label: "Tableau de bord", icon: IconHome },
-  { href: "/transactions", label: "Transactions", icon: IconList },
-  { href: "/ajouter", label: "Ajouter un achat", icon: IconPlusCircle },
-  { href: "/recus", label: "Reçus & scan", icon: IconReceipt },
-  { href: "/categories", label: "Catégories", icon: IconTag },
-  { href: "/sous-categories", label: "Sous-catégories", icon: IconBars },
-  { href: "/comptes", label: "Comptes", icon: IconWallet },
-  { href: "/budgets", label: "Budgets", icon: IconBudget },
-  { href: "/objectifs", label: "Objectifs", icon: IconFlag },
-  { href: "/analyses", label: "Analyses", icon: IconChart },
-  { href: "/rapports", label: "Rapports", icon: IconReport },
-  { href: "/parametres", label: "Paramètres", icon: IconSettings },
-];
-
+import { useState } from "react";
+import { IconBudget, IconChart, IconCloud, IconFlag, IconHome, IconList, IconPlusCircle, IconReceipt, IconReport, IconSettings, IconTag, IconWallet, IconCalendar } from "./icons";
+import { useResource } from "./ui";
+const groups = [
+  { label: "Au quotidien", items: [["/", "Accueil", IconHome], ["/transactions", "Transactions", IconList], ["/ajouter", "Ajouter un reçu", IconPlusCircle], ["/recus", "Reçus à vérifier", IconReceipt], ["/depenses-fixes", "Dépenses fixes", IconCalendar]] },
+  { label: "Planifier", items: [["/budgets", "Budgets", IconBudget], ["/objectifs", "Objectifs", IconFlag]] },
+  { label: "Comprendre", items: [["/analyses", "Analyses", IconChart], ["/rapports", "Rapports", IconReport]] },
+  { label: "Réglages", items: [["/categories", "Catégories", IconTag], ["/comptes", "Comptes", IconWallet], ["/parametres", "Paramètres", IconSettings]] },
+] as const;
+export type InboxStatus = { enabled: boolean; dir: string; exists: boolean; waitingFiles: number; lastError: string | null; lastScanAt: string | null };
 export function Sidebar() {
   const pathname = usePathname();
-
-  return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden>
-            <path d="M6 3h9l4 4v14H6z" opacity="0.9" />
-            <path d="M9 12h6M9 16h4" stroke="#1d4ed8" strokeWidth="1.6" />
-          </svg>
-        </div>
-        <div>
-          <strong>MaVie</strong>
-          <span>Suivi de dépenses</span>
-        </div>
-      </div>
-
-      <nav className="side-nav">
-        {NAV.map((item) => {
-          const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${active ? "active" : ""}`}
-            >
-              <Icon size={17} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="side-footer">
-        <span className="side-footer-icon">
-          <IconCloud size={18} />
-        </span>
-        <div>
-          <strong>Mode hors ligne</strong>
-          <span>Toutes vos données sur votre Mac</span>
-        </div>
-      </div>
-    </aside>
-  );
+  const [open, setOpen] = useState(false);
+  const inbox = useResource<InboxStatus>("/api/inbox/status", 20000);
+  const queue = useResource<{ receipts: { status: string }[] }>("/api/receipts", 20000);
+  const count = queue.data?.receipts.filter(r => r.status !== "confirmed").length;
+  return <aside className="sidebar"><div className="mac-drag" aria-hidden="true"/><div className="brand"><Image src="/logo.svg" width={44} height={36} alt="TWR"/><div><strong>MaVie</strong><span>Finances du foyer</span></div><button className="btn nav-toggle" aria-expanded={open} aria-controls="navigation" onClick={() => setOpen(!open)}>Menu</button></div>
+    <nav id="navigation" aria-label="Navigation principale" className={`side-nav ${open ? "open" : ""}`}>{groups.map(g => <div key={g.label} className="nav-group"><p>{g.label}</p>{g.items.map(([href, label, Icon]) => {
+      const active = href === "/" ? pathname === "/" : pathname.startsWith(href) || (href === "/categories" && pathname === "/sous-categories");
+      return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`nav-item ${active ? "active" : ""}`} onClick={() => setOpen(false)}><Icon size={18}/><span>{label}</span>{href === "/recus" && count !== undefined && count > 0 && <span className="count">{count}</span>}</Link>;
+    })}</div>)}</nav>
+    <Link href="/parametres" className="side-footer"><IconCloud size={20}/><div><strong>iPhone et iCloud</strong><span>{inbox.error ? "État indisponible" : !inbox.data ? "Vérification…" : !inbox.data.enabled ? "Synchronisation en pause" : inbox.data.lastError || !inbox.data.exists ? "À vérifier dans Paramètres" : `${inbox.data.waitingFiles} fichier(s) en attente`}</span></div></Link>
+  </aside>;
 }

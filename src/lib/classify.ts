@@ -1,15 +1,8 @@
 export const CATEGORY_COLORS: Record<string, string> = {
-  Alimentation: "#22c55e",
-  Logement: "#3b82f6",
-  Transport: "#f59e0b",
-  Magasinage: "#ec4899",
-  Restaurants: "#f43f5e",
-  "Santé & Fitness": "#22d3ee",
-  "Factures & Services": "#a78bfa",
-  Divertissement: "#facc15",
-  Enfants: "#fb923c",
-  Autres: "#94a3b8",
-  Revenu: "#10b981",
+  Alimentation: "#3987e5", Logement: "#d95926", Transport: "#199e70",
+  Magasinage: "#c98500", Restaurants: "#d55181", "Santé & Fitness": "#008300",
+  "Factures & Services": "#9085e9", Divertissement: "#e66767", Enfants: "#a3a29a",
+  Autres: "#6b6a65", Revenu: "#22c55e",
 };
 
 export type CategoryIconKey =
@@ -39,35 +32,13 @@ export const CATEGORY_ICONS: Record<string, CategoryIconKey> = {
   Revenu: "dollar",
 };
 
-const PALETTE = [
-  "#22c55e",
-  "#3b82f6",
-  "#f59e0b",
-  "#ec4899",
-  "#f43f5e",
-  "#22d3ee",
-  "#a78bfa",
-  "#facc15",
-  "#fb923c",
-  "#94a3b8",
-];
-
 export function colorForCategory(name: string, index = 0): string {
-  return CATEGORY_COLORS[name] ?? PALETTE[index % PALETTE.length];
+  void index;
+  return CATEGORY_COLORS[name] ?? "#6b6a65";
 }
 
 export function iconForCategory(name: string | null | undefined): CategoryIconKey {
   return (name && CATEGORY_ICONS[name]) || "dots";
 }
 
-export const BREAKDOWN_COLORS = [
-  "#f43f5e",
-  "#fb7185",
-  "#3b82f6",
-  "#ec4899",
-  "#60a5fa",
-  "#22c55e",
-  "#facc15",
-  "#a16207",
-  "#94a3b8",
-];
+export const BREAKDOWN_COLORS = Object.values(CATEGORY_COLORS).slice(0, 10);
