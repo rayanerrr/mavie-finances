@@ -63,7 +63,7 @@ export function TransactionsTable({ rows }: { rows: TxRow[] }) {
                 <td>
                   <span className="merchant">
                     <MerchantLogo merchantKey={tx.merchantKey} store={tx.store} />
-                    {merchantLabel(tx.merchantKey, tx.store)}
+                    {tx.merchantKey || tx.store ? merchantLabel(tx.merchantKey, tx.store) : <span className="muted">—</span>}
                   </span>
                 </td>
                 <td className="desc" title={tx.person ? `Pour : ${tx.person}` : undefined}>

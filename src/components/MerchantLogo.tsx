@@ -7,6 +7,8 @@ export function MerchantLogo({
   merchantKey?: string | null;
   store?: string | null;
 }) {
+  // Sans marchand (dépense fixe, saisie rapide) : pas de pastille vide.
+  if (!merchantKey && !store?.trim()) return null;
   const m = merchantMeta(merchantKey, store);
   const long = m.glyph.length > 2;
   return (

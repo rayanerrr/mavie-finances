@@ -2915,3 +2915,9 @@ a.btn-primary { text-decoration: none; }
   .fx-group li { grid-template-columns: 160px minmax(0, 1fr) 110px auto; }
   .fx-next { display: none; }
 }
+
+/* ---------- Finitions v2 ---------- */
+.settings-section { padding: 22px 24px; margin-bottom: 14px; }
+.settings-section h2 { margin-top: 0; }
+.dash-side .card-head { flex-wrap: wrap; row-gap: 8px; }
+.breakdown-total { white-space: nowrap; margin-left: auto; }
