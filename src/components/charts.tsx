@@ -17,11 +17,6 @@ export function DonutChart({
   const radius = 50;
   const stroke = 26;
   const circumference = 2 * Math.PI * radius;
-  // Début de chaque part, calculé d'avance (pas de variable modifiée pendant le rendu).
-  const offsets = slices.map((_, i) =>
-    slices.slice(0, i).reduce((sum, x) => sum + (x.value / total) * circumference, 0),
-  );
-
   return (
     <div className="donut-wrap">
       <svg viewBox="0 0 140 140" className="donut-svg" aria-hidden>
@@ -35,6 +30,7 @@ export function DonutChart({
         />
         {slices.map((slice, index) => {
           const length = (slice.value / total) * circumference;
+          const offset = slices.slice(0, index).reduce((sum, item) => sum + (item.value / total) * circumference, 0);
           const el = (
             <circle
               key={slice.label}
@@ -45,7 +41,7 @@ export function DonutChart({
               stroke={slice.color}
               strokeWidth={stroke}
               strokeDasharray={`${Math.max(length - 1, 0)} ${circumference - Math.max(length - 1, 0)}`}
-              strokeDashoffset={-offsets[index]}
+              strokeDashoffset={-offset}
               transform="rotate(-90 70 70)"
             />
           );

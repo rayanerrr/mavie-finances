@@ -274,6 +274,49 @@ export const IconPalette = (p: P) => (
   </Svg>
 );
 
+export const IconStore = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 9.5 5.5 4h13L20 9.5a2.5 2.5 0 0 1-4 2 2.5 2.5 0 0 1-4 0 2.5 2.5 0 0 1-4 0 2.5 2.5 0 0 1-4-2z" />
+    <path d="M5 12v8h14v-8M10 20v-5h4v5" />
+  </Svg>
+);
+export const IconClock = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </Svg>
+);
+export const IconScale = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 4v16M7 20h10M5 7h14" />
+    <path d="m5 7-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z" />
+  </Svg>
+);
+export const IconInfo = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 11v5M12 8h.01" />
+  </Svg>
+);
+export const IconArrowUpRight = (p: P) => (
+  <Svg {...p}>
+    <path d="M7 17 17 7M9 7h8v8" />
+  </Svg>
+);
+export const IconUsers = (p: P) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3" />
+    <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+    <circle cx="17" cy="9" r="2.4" />
+    <path d="M15.5 14.2A4.5 4.5 0 0 1 21 18.5" />
+  </Svg>
+);
+export const IconBox = (p: P) => (
+  <Svg {...p}>
+    <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" />
+    <path d="m4 7.5 8 4.5 8-4.5M12 12v9" />
+  </Svg>
+);
 const CATEGORY_PATHS: Record<CategoryIconKey, React.ReactNode> = {
   cart: (
     <>
