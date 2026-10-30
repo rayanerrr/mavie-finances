@@ -58,21 +58,32 @@ async function startServer() {
   current.stdout.on('data', log); current.stderr.on('data', log); current.on('error', log);
   current.once('exit', (code, signal) => {
     log(`Serveur arrêté : ${code} ${signal}`);
-    if (!quitting) recover().catch(fatal);
+    if (!quitting && current.ready) recover().catch(fatal);
   });
   for (let i = 0; i < 120; i++) {
     if (current.exitCode !== null || current.signalCode !== null) throw new Error('Serveur arrêté pendant le démarrage');
-    try { const response = await fetch(origin, { signal: AbortSignal.timeout(1000) }); if (response.status < 500) return; } catch {}
+    try { const response = await fetch(origin, { signal: AbortSignal.timeout(1000) }); if (response.status < 500) { current.ready = true; return; } } catch {}
     await delay(250);
   }
   throw new Error('Le serveur ne répond pas après 150 secondes');
+}
+async function startWithRetry() {
+  while (!quitting) {
+    try { await startServer(); return; }
+    catch (error) {
+      if (child) { child.ready = false; child.kill(); }
+      if (restarts++ >= 3) throw error;
+      log(`Nouvelle tentative : ${error.message}`);
+      await delay(500);
+    }
+  }
 }
 async function recover() {
   clearInterval(timer);
   if (restarts++ >= 3) return fatal(new Error('Le serveur a épuisé ses trois relances'));
   await delay(500);
   if (quitting) return;
-  await startServer();
+  await startWithRetry();
   if (window && !window.isDestroyed()) await window.loadURL(origin);
   polling();
 }
@@ -150,9 +161,16 @@ function fatal(error) {
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (window && !window.isDestroyed()) { if (window.isMinimized()) window.restore(); window.show(); window.focus(); } });
-  app.on('before-quit', () => {
+  app.on('before-quit', event => {
+    if (quitting) return;
     quitting = true; clearInterval(timer);
-    if (child && child.exitCode === null) { child.kill('SIGTERM'); const processToKill = child; setTimeout(() => processToKill.kill('SIGKILL'), 2000).unref(); }
+    if (child && child.exitCode === null && child.signalCode === null) {
+      event.preventDefault();
+      const processToKill = child;
+      const force = setTimeout(() => processToKill.kill('SIGKILL'), 2000);
+      processToKill.once('exit', () => { clearTimeout(force); app.quit(); });
+      processToKill.kill('SIGTERM');
+    }
   });
   app.on('window-all-closed', () => app.quit());
   app.whenReady().then(async () => {
@@ -166,7 +184,7 @@ else {
       const url = new URL(process.env.MAVIE_URL);
       if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('MAVIE_URL doit pointer vers un serveur local HTTP');
       origin = url.origin;
-    } else await startServer();
+    } else await startWithRetry();
     if (smoke) await runSmoke(); else { await window.loadURL(origin); polling(); }
   }).catch(fatal);
 }

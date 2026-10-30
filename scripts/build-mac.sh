@@ -26,7 +26,7 @@ echo '2/7 · Installation des dépendances'
 npm ci
 echo '3/7 · Construction Next standalone'
 export FINANCES_DATA_DIR="$BUILD/build-data"
-npm run build
+MAVIE_BUILD=1 npm run build
 echo '4/7 · Assemblage du serveur et des ressources'
 rsync -a --delete .next/static/ .next/standalone/.next/static/
 rsync -a --delete public/ .next/standalone/public/
