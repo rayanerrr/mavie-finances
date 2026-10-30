@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- chargement des données au montage */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
