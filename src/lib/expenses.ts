@@ -17,7 +17,7 @@ export type ExpenseInput = {
   category: string;
   subcategory?: string | null;
   notes?: string | null;
-  source?: "receipt" | "text";
+  source?: "receipt" | "text" | "phone";
   monthKey?: string;
   type?: "expense" | "income";
   accountId?: number | null;
