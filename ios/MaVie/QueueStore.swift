@@ -16,6 +16,17 @@ final class QueueStore {
         try encoder.encode(PendingItem(id: id, mediaExtension: ext, companion: companion)).write(to: directory.appendingPathComponent("\(id).json"), options: .atomic)
     }
 
+    func save(expense: Data, id: String) throws {
+        try expense.write(to: directory.appendingPathComponent("\(id).expense.json"), options: .atomic)
+    }
+
+    func expenseItems() -> [String] {
+        guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return [] }
+        return urls.filter { $0.pathExtension == "json" && $0.lastPathComponent.hasSuffix(".expense.json") }.map { $0.deletingPathExtension().deletingPathExtension().lastPathComponent }
+    }
+
+    func expense(for id: String) -> Data? { try? Data(contentsOf: directory.appendingPathComponent("\(id).expense.json")) }
+
     func items() -> [PendingItem] {
         guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return [] }
         return urls.filter { $0.pathExtension == "json" }.compactMap { try? decoder.decode(PendingItem.self, from: (try? Data(contentsOf: $0)) ?? Data()) }
@@ -23,4 +34,5 @@ final class QueueStore {
 
     func media(for item: PendingItem) -> Data? { try? Data(contentsOf: directory.appendingPathComponent("\(item.id).\(item.mediaExtension)")) }
     func remove(_ item: PendingItem) { try? FileManager.default.removeItem(at: directory.appendingPathComponent("\(item.id).\(item.mediaExtension)")); try? FileManager.default.removeItem(at: directory.appendingPathComponent("\(item.id).json")) }
+    func removeExpense(_ id: String) { try? FileManager.default.removeItem(at: directory.appendingPathComponent("\(id).expense.json")) }
 }
