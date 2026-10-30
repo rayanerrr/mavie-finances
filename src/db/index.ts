@@ -31,6 +31,21 @@ function ensureDb() {
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
 
+  // Une base créée par l'ancienne version (« finances 2/3 ») a une table category_rules
+  // de règles par mot-clé. On la renomme en keyword_rules (sans perte) avant de
+  // créer notre table d'apprentissage du même nom.
+  const legacyRules = sqlite.prepare("PRAGMA table_info(category_rules)").all() as Array<{ name: string }>;
+  if (legacyRules.some((c) => c.name === "keyword") && !legacyRules.some((c) => c.name === "pattern")) {
+    const hasKeywordRules = sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'keyword_rules'")
+      .get();
+    sqlite.exec(
+      hasKeywordRules
+        ? "ALTER TABLE category_rules RENAME TO keyword_rules_ancienne"
+        : "ALTER TABLE category_rules RENAME TO keyword_rules",
+    );
+  }
+
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,6 +164,9 @@ function ensureDb() {
   ensureColumn(sqlite, "expenses", "receipt_id", "INTEGER");
   ensureColumn(sqlite, "expenses", "type", "TEXT NOT NULL DEFAULT 'expense'");
   ensureColumn(sqlite, "expenses", "merchant_key", "TEXT");
+  ensureColumn(sqlite, "expenses", "quantity", "REAL");
+  ensureColumn(sqlite, "expenses", "unit", "TEXT");
+  ensureColumn(sqlite, "expenses", "time", "TEXT");
 
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS recurring (
@@ -169,9 +187,9 @@ function ensureDb() {
   `);
   ensureColumn(sqlite, "expenses", "recurring_id", "INTEGER");
   sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS expenses_recurring_date_idx ON expenses(recurring_id,date) WHERE recurring_id IS NOT NULL");
-  for (const [column, definition] of Object.entries({purchase_date:"TEXT", total:"REAL", subtotal:"REAL", taxes:"REAL", origin:"TEXT NOT NULL DEFAULT 'upload'", error:"TEXT", ai_raw:"TEXT", model:"TEXT", inbox_key:"TEXT"})) ensureColumn(sqlite,"receipts",column,definition);
+  for (const [column, definition] of Object.entries({purchase_date:"TEXT", purchase_time:"TEXT", total:"REAL", subtotal:"REAL", taxes:"REAL", origin:"TEXT NOT NULL DEFAULT 'upload'", error:"TEXT", ai_raw:"TEXT", model:"TEXT", inbox_key:"TEXT"})) ensureColumn(sqlite,"receipts",column,definition);
   sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS receipts_inbox_key_idx ON receipts(inbox_key) WHERE inbox_key IS NOT NULL");
-  for (const [column, definition] of Object.entries({quantity:"REAL",raw_text:"TEXT",confidence:"REAL"})) ensureColumn(sqlite,"receipt_items",column,definition);
+  for (const [column, definition] of Object.entries({quantity:"REAL",unit:"TEXT",raw_text:"TEXT",confidence:"REAL"})) ensureColumn(sqlite,"receipt_items",column,definition);
   seedCore(sqlite);
   return drizzle(sqlite, { schema });
 }

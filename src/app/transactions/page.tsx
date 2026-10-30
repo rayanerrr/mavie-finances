@@ -1,38 +1,118 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect -- chargement des données au montage */
+
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MonthPicker } from "@/components/MonthPicker";
-import { TransactionsLedger as TransactionsTable, type TxRow } from "@/components/TransactionsLedger";
+import { TransactionsTable, type TxRow } from "@/components/TransactionsTable";
 import { ConfirmDelete, Notice, useChoices, type Category } from "@/components/ui";
-import { currentMonthKey, formatMoney } from "@/lib/money";
-
-type EditForm = { date: string; amount: string; description: string; store: string; person: string; category: string; subcategory: string; accountId: string; notes: string };
+import { currentMonthKey } from "@/lib/money";
 
 export default function TransactionsPage() {
   const [month, setMonth] = useState(currentMonthKey());
   const [months, setMonths] = useState<string[]>([currentMonthKey()]);
-  const [q, setQ] = useState(""); const [categoryId, setCategoryId] = useState(""); const [subcategoryId, setSubcategoryId] = useState(""); const [type, setType] = useState(""); const [source, setSource] = useState("");
-  const [rows, setRows] = useState<TxRow[]>([]); const [selected, setSelected] = useState<TxRow | null>(null); const [deleting, setDeleting] = useState<TxRow | null>(null); const [error, setError] = useState("");
-  const { categories, accounts, people } = useChoices();
+  const [q, setQ] = useState("");
+  const [person, setPerson] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [source, setSource] = useState("");
+  const [accounts, setAccounts] = useState<Array<{ id: number; name: string }>>(
+    [],
+  );
+  const [rows, setRows] = useState<TxRow[]>([]);
+  const [selected, setSelected] = useState<TxRow | null>(null);
+  const [deleting, setDeleting] = useState<TxRow | null>(null);
+  const [error, setError] = useState("");
+  const { categories, people } = useChoices();
+
   const load = useCallback(async () => {
-    const params = new URLSearchParams({ month }); if (q.trim()) params.set("q", q.trim()); if (categoryId) params.set("categoryId", categoryId); if (subcategoryId) params.set("subcategoryId", subcategoryId); if (type) params.set("type", type); if (source) params.set("source", source);
-    const [expRes, insightRes] = await Promise.all([fetch(`/api/expenses?${params}`), fetch(`/api/insights?month=${month}`)]);
-    if (!expRes.ok) { setError("Les transactions ne sont pas disponibles."); return; } setRows((await expRes.json()).expenses); if (insightRes.ok) { const json = await insightRes.json(); setMonths(json.months?.length ? json.months : [month]); }
-  }, [month, q, categoryId, subcategoryId, type, source]);
-  useEffect(() => { void load(); }, [load]);
-  const filterCategory = categories.find((category) => String(category.id) === categoryId);
-  const expensesTotal = rows.filter((row) => row.type !== "income").reduce((sum, row) => sum + Number(row.amount || 0), 0); const incomeTotal = rows.filter((row) => row.type === "income").reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  function editForm(row: TxRow): EditForm { return { date: row.date, amount: String(row.amount), description: row.description, store: row.store ?? "", person: row.person ?? "", category: row.categoryName ?? "Autres", subcategory: row.subcategoryName ?? "", accountId: row.accountId ? String(row.accountId) : "", notes: row.notes ?? "" }; }
-  async function save(form: EditForm) { if (!selected) return; try { const res = await fetch(`/api/expenses/${selected.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, amount: Number(form.amount.replace(",", ".")), accountId: form.accountId ? Number(form.accountId) : null, subcategory: form.subcategory || null }) }); if (!res.ok) throw new Error((await res.json()).error); setSelected(null); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Impossible d’enregistrer la transaction."); } }
-  const csvParams = new URLSearchParams({ month }); if (q.trim()) csvParams.set("q", q.trim()); if (categoryId) csvParams.set("categoryId", categoryId); if (subcategoryId) csvParams.set("subcategoryId", subcategoryId); if (type) csvParams.set("type", type); if (source) csvParams.set("source", source);
-  return <AppShell title="Transactions" actions={<MonthPicker month={month} months={months} onChange={setMonth} />}>
-    {error && <Notice error={error} />}<section className="panel"><div className="tx-toolbar"><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" aria-label="Rechercher" /><select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(""); }} aria-label="Catégorie"><option value="">Catégories</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select><select value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} aria-label="Sous-catégorie" disabled={!filterCategory}><option value="">Sous-catégories</option>{filterCategory?.subcategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select><select value={type} onChange={(e) => setType(e.target.value)} aria-label="Type"><option value="">Dépenses et revenus</option><option value="expense">Dépense</option><option value="income">Revenu</option></select><select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source"><option value="">Toutes les sources</option><option value="receipt">Reçu</option><option value="text">Manuel</option><option value="recurring">Fixe</option></select><a className="btn" href={`/api/reports/csv?${csvParams}`}>Exporter en CSV</a></div><div className="tx-totals"><span>Dépenses <strong>{formatMoney(expensesTotal)}</strong></span><span>Revenus <strong className="state-ok">+{formatMoney(incomeTotal)}</strong></span><span>{rows.length} transaction{rows.length === 1 ? "" : "s"}</span></div><TransactionsTable rows={rows} onSelect={setSelected} /></section>
-    {selected && <EditDrawer row={selected} categories={categories} accounts={accounts} people={people} initial={editForm(selected)} onClose={() => setSelected(null)} onSave={save} onDelete={() => { setDeleting(selected); setSelected(null); }} />}{deleting && <ConfirmDelete title="Supprimer cette transaction ?" detail={`« ${deleting.description} » sera supprimée définitivement.`} onClose={() => setDeleting(null)} onConfirm={async () => { const res = await fetch(`/api/expenses/${deleting.id}`, { method: "DELETE" }); if (!res.ok) throw new Error("Suppression impossible."); setDeleting(null); await load(); }} />}
-  </AppShell>;
+    const params = new URLSearchParams({ month });
+    if (q.trim()) params.set("q", q.trim());
+    if (person) params.set("person", person);
+    if (accountId) params.set("accountId", accountId);
+    if (source) params.set("source", source);
+
+    const [expRes, insightRes, accRes] = await Promise.all([
+      fetch(`/api/expenses?${params}`),
+      fetch(`/api/insights?month=${month}`),
+      fetch("/api/accounts"),
+    ]);
+    if (expRes.ok) {
+      const json = await expRes.json();
+      setRows(json.expenses);
+    }
+    if (insightRes.ok) {
+      const json = await insightRes.json();
+      setMonths(json.months?.length ? json.months : [month]);
+    }
+    if (accRes.ok) {
+      const json = await accRes.json();
+      setAccounts(json.accounts);
+    }
+  }, [month, q, person, accountId, source]);
+
+  async function save(form: EditForm) {
+    if (!selected) return;
+    const response = await fetch(`/api/expenses/${selected.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, amount: Number(form.amount.replace(",", ".")), accountId: form.accountId ? Number(form.accountId) : null, subcategory: form.subcategory || null }) });
+    if (!response.ok) { setError("Impossible d’enregistrer la transaction."); return; }
+    setSelected(null);
+    await load();
+  }
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return (
+    <AppShell
+      title="Transactions"
+      actions={
+        <>
+          <MonthPicker month={month} months={months} onChange={setMonth} />
+          <button type="button" className="btn ghost" onClick={() => void load()}>
+            Rafraîchir
+          </button>
+        </>
+      }
+    >
+      {error && <Notice error={error} />}
+      <section className="panel">
+        <div className="filters" style={{ marginBottom: "1rem" }}>
+          <select value={person} onChange={(e) => setPerson(e.target.value)}>
+            <option value="">Tout le foyer</option>
+            <option value="moi">Moi</option>
+            <option value="femme">Femme</option>
+            <option value="fils">Fils</option>
+          </select>
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+          >
+            <option value="">Tous les comptes</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher…"
+          />
+          <select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source"><option value="">Toutes les sources</option><option value="receipt">Reçu</option><option value="text">Manuel</option><option value="recurring">Fixe</option></select>
+        </div>
+        <TransactionsTable rows={rows} onSelect={setSelected} />
+      </section>
+      {selected && <EditDialog row={selected} categories={categories} accounts={accounts} people={people} onClose={() => setSelected(null)} onSave={save} onDelete={() => { setDeleting(selected); setSelected(null); }} />}
+      {deleting && <ConfirmDelete title="Supprimer cette transaction ?" detail={`« ${deleting.description} » sera supprimée définitivement.`} onClose={() => setDeleting(null)} onConfirm={async () => { const response = await fetch(`/api/expenses/${deleting.id}`, { method: "DELETE" }); if (!response.ok) throw new Error("Suppression impossible."); setDeleting(null); await load(); }} />}
+    </AppShell>
+  );
 }
 
-function EditDrawer({ row, categories, accounts, people, initial, onClose, onSave, onDelete }: { row: TxRow; categories: Category[]; accounts: Array<{ id: number; name: string }>; people: string[]; initial: EditForm; onClose: () => void; onSave: (form: EditForm) => Promise<void>; onDelete: () => void }) {
-  const [form, setForm] = useState(initial); const category = categories.find((item) => item.name === form.category); const set = (key: keyof EditForm, value: string) => setForm((current) => ({ ...current, [key]: value }));
-  return <div className="drawer-backdrop"><aside className="edit-drawer" aria-label="Modifier la transaction"><div className="panel-head"><h2>Modifier la transaction</h2><button className="btn" onClick={onClose}>Fermer</button></div><p className="muted">{row.source === "receipt" ? "🧾 Reçu" : row.source === "recurring" ? "↻ Dépense fixe" : "✎ Saisie manuelle"}</p><div className="quick-form"><label>Date<input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label>Montant<input inputMode="decimal" value={form.amount} onChange={(e) => set("amount", e.target.value)} /></label><label>Description<input value={form.description} onChange={(e) => set("description", e.target.value)} /></label><label>Marchand<input value={form.store} onChange={(e) => set("store", e.target.value)} /></label><label>Personne<select value={form.person} onChange={(e) => set("person", e.target.value)}><option value="">Non précisée</option>{people.map((person) => <option key={person}>{person}</option>)}</select></label><label>Compte<select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}><option value="">Non précisé</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label><label>Catégorie<select value={form.category} onChange={(e) => { set("category", e.target.value); set("subcategory", ""); }}>{categories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label>Sous-catégorie<select value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} disabled={!category}><option value="">Aucune</option>{category?.subcategories.map((sub) => <option key={sub.id}>{sub.name}</option>)}</select></label><label className="full">Notes<textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label></div><div className="actions"><button className="btn primary" onClick={() => void onSave(form)}>Enregistrer</button><button className="btn danger" onClick={onDelete}>Supprimer</button></div></aside></div>;
+type EditForm = { date: string; amount: string; description: string; store: string; person: string; category: string; subcategory: string; accountId: string; notes: string };
+function EditDialog({ row, categories, accounts, people, onClose, onSave, onDelete }: { row: TxRow; categories: Category[]; accounts: Array<{ id: number; name: string }>; people: string[]; onClose: () => void; onSave: (form: EditForm) => Promise<void>; onDelete: () => void }) {
+  const [form, setForm] = useState<EditForm>({ date: row.date, amount: String(row.amount), description: row.description, store: row.store ?? "", person: row.person ?? "", category: row.categoryName ?? "Autres", subcategory: row.subcategoryName ?? "", accountId: row.accountId ? String(row.accountId) : "", notes: row.notes ?? "" });
+  const category = categories.find((item) => item.name === form.category);
+  const set = (key: keyof EditForm, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  return <div className="drawer-backdrop"><aside className="edit-drawer" aria-label="Modifier la transaction"><div className="panel-head"><h2>Modifier la transaction</h2><button className="btn" onClick={onClose}>Fermer</button></div><div className="quick-form"><label>Date<input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label>Montant<input inputMode="decimal" value={form.amount} onChange={(e) => set("amount", e.target.value)} /></label><label>Description<input value={form.description} onChange={(e) => set("description", e.target.value)} /></label><label>Marchand<input value={form.store} onChange={(e) => set("store", e.target.value)} /></label><label>Personne<select value={form.person} onChange={(e) => set("person", e.target.value)}><option value="">Non précisée</option>{people.map((item) => <option key={item}>{item}</option>)}</select></label><label>Compte<select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}><option value="">Non précisé</option>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Catégorie<select value={form.category} onChange={(e) => { set("category", e.target.value); set("subcategory", ""); }}>{categories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label>Sous-catégorie<select value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} disabled={!category}><option value="">Aucune</option>{category?.subcategories.map((item) => <option key={item.id}>{item.name}</option>)}</select></label><label className="full">Notes<textarea rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></label></div><div className="actions"><button className="btn primary" onClick={() => void onSave(form)}>Enregistrer</button><button className="btn danger" onClick={onDelete}>Supprimer</button></div></aside></div>;
 }
