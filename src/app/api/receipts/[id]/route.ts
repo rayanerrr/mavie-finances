@@ -9,7 +9,7 @@ export async function GET(_request:Request, ctx:IdContext) {
   try {
     const receipt=getReceipt(await routeId(ctx));
     if (!receipt) throw new Error("Reçu introuvable");
-    return Response.json({...receipt,receipt});
+    return Response.json({receipt});
   } catch(error) { return apiError(error); }
 }
 export async function PATCH(request:Request, ctx:IdContext) {
