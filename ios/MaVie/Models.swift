@@ -144,14 +144,6 @@ struct PendingItem: Codable, Identifiable {
     let companion: Companion
 }
 
-enum AppColors {
-    static let background = Color(red: 13 / 255, green: 15 / 255, blue: 19 / 255)
-    static let panel = Color(red: 20 / 255, green: 23 / 255, blue: 29 / 255)
-    static let red = Color(red: 242 / 255, green: 54 / 255, blue: 69 / 255)
-    static let text = Color(red: 238 / 255, green: 241 / 255, blue: 247 / 255)
-    static let muted = Color(red: 139 / 255, green: 148 / 255, blue: 168 / 255)
-}
-
 extension UserDefaults {
     var selectedFolderBookmark: Data? {
         get { data(forKey: "selectedFolderBookmark") }
