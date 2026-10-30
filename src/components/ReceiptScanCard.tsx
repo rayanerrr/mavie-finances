@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   IconArrowRight,
@@ -22,25 +23,40 @@ type Receipt = {
   id: number;
   filename: string;
   mime: string;
-  status: "pending" | "analyzed" | "confirmed" | string;
+  status: "pending" | "analyzing" | "analyzed" | "error" | "confirmed" | string;
   store: string | null;
+  error?: string | null;
+  total?: number | null;
   items: ReceiptItem[];
 };
 
 type Tab = "photo" | "quick" | "pdf";
 
 const STEPS = [
-  "Lecture du texte",
-  "Extraction des items",
-  "Catégorisation",
-  "Ajout à vos transactions",
+  "Envoi de la photo",
+  "Lecture par l’IA (Gemini)",
+  "Classement par catégorie",
+  "Ajout à tes transactions",
 ];
 
 function stepsDone(status?: string) {
   if (status === "confirmed") return 4;
   if (status === "analyzed") return 3;
+  if (status === "analyzing" || status === "pending") return 1;
   return 0;
 }
+
+// Raccourcis de la saisie sans reçu : description + catégorie › sous-catégorie.
+const QUICK_PICKS: Array<{ label: string; category: string; subcategory: string | null }> = [
+  { label: "Essence", category: "Transport", subcategory: "Essence" },
+  { label: "Épicerie", category: "Alimentation", subcategory: null },
+  { label: "Restaurant", category: "Restaurants", subcategory: "Restaurant" },
+  { label: "Café", category: "Restaurants", subcategory: "Café" },
+  { label: "Stationnement", category: "Transport", subcategory: "Stationnement" },
+  { label: "Pharmacie", category: "Santé & Fitness", subcategory: "Pharmacie" },
+];
+
+type CategoryOption = { name: string; subs: string[] };
 
 export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   const [tab, setTab] = useState<Tab>("photo");
@@ -52,7 +68,10 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [accounts, setAccounts] = useState<Array<{ id: number; name: string }>>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [qSub, setQSub] = useState("");
+  const [qDate, setQDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [people, setPeople] = useState<string[]>(["moi"]);
   const [qDesc, setQDesc] = useState("");
   const [qAmount, setQAmount] = useState("");
   const [qCategory, setQCategory] = useState("Alimentation");
@@ -63,7 +82,10 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   const loadReceipt = useCallback(async (id?: number) => {
     if (id) {
       const res = await fetch(`/api/receipts/${id}`);
-      if (res.ok) setReceipt(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setReceipt(json.receipt ?? json);
+      }
       return;
     }
     const res = await fetch("/api/receipts");
@@ -76,7 +98,22 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   useEffect(() => {
     void loadReceipt();
     void (async () => {
-      const [a, c] = await Promise.all([fetch("/api/accounts"), fetch("/api/categories")]);
+      const [a, c, st] = await Promise.all([
+        fetch("/api/accounts"),
+        fetch("/api/categories"),
+        fetch("/api/settings"),
+      ]);
+      if (st.ok) {
+        try {
+          const list = JSON.parse((await st.json()).settings.people);
+          if (Array.isArray(list) && list.length) {
+            setPeople(list);
+            setQPerson(list[0]);
+          }
+        } catch {
+          /* réglage absent : on garde « moi » */
+        }
+      }
       if (a.ok) {
         const json = await a.json();
         setAccounts(json.accounts);
@@ -86,17 +123,20 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
         const json = await c.json();
         setCategories(
           json.categories
-            .filter((x: { kind: string }) => x.kind !== "income")
-            .map((x: { name: string }) => x.name),
+            .filter((x: { kind: string; archived?: number }) => x.kind !== "income" && !x.archived)
+            .map((x: { name: string; subcategories?: Array<{ name: string }> }) => ({
+              name: x.name,
+              subs: (x.subcategories ?? []).map((sub) => sub.name),
+            })),
         );
       }
     })();
   }, [loadReceipt]);
 
   useEffect(() => {
-    if (receipt?.status !== "pending") return;
+    if (receipt?.status !== "pending" && receipt?.status !== "analyzing") return;
     const id = receipt.id;
-    const timer = setInterval(() => void loadReceipt(id), 4000);
+    const timer = setInterval(() => void loadReceipt(id), 2000);
     return () => clearInterval(timer);
   }, [receipt?.status, receipt?.id, loadReceipt]);
 
@@ -111,7 +151,7 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
       if (!res.ok) throw new Error("Échec du téléversement");
       const json = await res.json();
       setReviewing(false);
-      setReceipt({ ...json.receipt, items: [] });
+      setReceipt({ ...json.receipt, status: json.receipt.status ?? "analyzing", items: [] });
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -126,6 +166,13 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemId: item.id, accepted: item.accepted !== 1 }),
     });
+    await loadReceipt(receipt.id);
+  }
+
+  async function reanalyze() {
+    if (!receipt) return;
+    setMsg(null);
+    await fetch(`/api/receipts/${receipt.id}/reanalyze`, { method: "POST" });
     await loadReceipt(receipt.id);
   }
 
@@ -159,10 +206,11 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify([
           {
-            date: new Date().toISOString().slice(0, 10),
+            date: qDate,
             amount,
             description: qDesc.trim(),
             category: qCategory,
+            subcategory: qSub || null,
             store: qStore.trim() || null,
             person: qPerson,
             accountId: qAccount || null,
@@ -175,7 +223,8 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
       setQDesc("");
       setQAmount("");
       setQStore("");
-      setMsg("Achat ajouté.");
+      setQSub("");
+      setMsg(`Ajouté : ${qDesc.trim()} · ${formatMoney(amount)}`);
       onImported?.();
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Erreur");
@@ -213,23 +262,53 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
 
       {tab === "quick" ? (
         <div className="quick-grid">
-          <input value={qDesc} onChange={(e) => setQDesc(e.target.value)} placeholder="Description (ex. plein d’essence)" />
+          <p className="quick-hint">Pas de reçu ? Écris-le simplement.</p>
+          <div className="quick-picks" role="group" aria-label="Raccourcis">
+            {QUICK_PICKS.map((pick) => (
+              <button
+                key={pick.label}
+                type="button"
+                className={`chip ${qDesc === pick.label ? "active" : ""}`}
+                onClick={() => {
+                  setQDesc(pick.label);
+                  setQCategory(pick.category);
+                  setQSub(pick.subcategory ?? "");
+                }}
+              >
+                {pick.label}
+              </button>
+            ))}
+          </div>
+          <input value={qDesc} onChange={(e) => setQDesc(e.target.value)} placeholder="Description (ex. plein d’essence)" aria-label="Description" />
           <div className="quick-2">
-            <input value={qAmount} onChange={(e) => setQAmount(e.target.value)} placeholder="Montant $" inputMode="decimal" />
-            <input value={qStore} onChange={(e) => setQStore(e.target.value)} placeholder="Marchand" />
+            <input value={qAmount} onChange={(e) => setQAmount(e.target.value)} placeholder="Montant $" inputMode="decimal" aria-label="Montant" />
+            <input value={qStore} onChange={(e) => setQStore(e.target.value)} placeholder="Marchand (facultatif)" aria-label="Marchand" />
           </div>
           <div className="quick-2">
-            <select value={qCategory} onChange={(e) => setQCategory(e.target.value)}>
+            <select value={qCategory} onChange={(e) => { setQCategory(e.target.value); setQSub(""); }} aria-label="Catégorie">
               {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+                <option key={c.name} value={c.name}>
+                  {c.name}
                 </option>
               ))}
             </select>
-            <select value={qPerson} onChange={(e) => setQPerson(e.target.value)}>
-              <option value="moi">Moi</option>
-              <option value="femme">Ma femme</option>
-              <option value="fils">Mon fils</option>
+            <select value={qSub} onChange={(e) => setQSub(e.target.value)} aria-label="Sous-catégorie">
+              <option value="">Sous-catégorie…</option>
+              {(categories.find((c) => c.name === qCategory)?.subs ?? []).map((sub) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="quick-2">
+            <input type="date" value={qDate} onChange={(e) => setQDate(e.target.value)} aria-label="Date" />
+            <select value={qPerson} onChange={(e) => setQPerson(e.target.value)} aria-label="Personne">
+              {people.map((person) => (
+                <option key={person} value={person}>
+                  {person.charAt(0).toUpperCase() + person.slice(1)}
+                </option>
+              ))}
             </select>
           </div>
           <select value={qAccount} onChange={(e) => setQAccount(e.target.value ? Number(e.target.value) : "")}>
@@ -300,14 +379,22 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
               </div>
 
               <div className="scan-status">
-                {receipt.status === "pending" ? (
+                {receipt.status === "pending" || receipt.status === "analyzing" ? (
                   <div className="scan-head">
                     <span className="scan-badge pending">
                       <span className="spinner" />
                     </span>
                     <div>
-                      <strong className="pending-text">En attente d’analyse</strong>
-                      <span>Dans Cursor : « analyse le reçu #{receipt.id} »</span>
+                      <strong className="pending-text">Lecture en cours…</strong>
+                      <span>L’IA lit ton reçu, quelques secondes.</span>
+                    </div>
+                  </div>
+                ) : receipt.status === "error" ? (
+                  <div className="scan-head">
+                    <span className="scan-badge error">!</span>
+                    <div>
+                      <strong className="error-text">Lecture impossible</strong>
+                      <span>{receipt.error ?? "Réessaie dans un instant."}</span>
                     </div>
                   </div>
                 ) : (
@@ -325,13 +412,26 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
                 )}
 
                 {receipt.status === "analyzed" && (
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={() => setReviewing((v) => !v)}
-                  >
-                    Vérifier et confirmer <IconArrowRight size={14} />
-                  </button>
+                  <div className="scan-actions">
+                    <Link className="btn-primary" href={`/recus/${receipt.id}`}>
+                      Vérifier et confirmer <IconArrowRight size={14} />
+                    </Link>
+                    <button type="button" className="btn-link" onClick={() => setReviewing((v) => !v)}>
+                      {reviewing ? "Masquer l’aperçu" : "Aperçu rapide"}
+                    </button>
+                  </div>
+                )}
+                {receipt.status === "error" && (
+                  <div className="scan-actions">
+                    <button type="button" className="btn-primary" onClick={() => void reanalyze()}>
+                      Relancer la lecture
+                    </button>
+                    {/cl[ée]|Paramètres/i.test(receipt.error ?? "") && (
+                      <Link className="btn-link" href="/parametres#gemini">
+                        Ouvrir les paramètres
+                      </Link>
+                    )}
+                  </div>
                 )}
 
                 <ul className="steps">

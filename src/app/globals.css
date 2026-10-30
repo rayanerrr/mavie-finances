@@ -2705,3 +2705,32 @@ td.desc {
 .side-footer.warn .side-footer-icon,
 .side-footer.warn strong { color: #f59e0b; }
 .side-footer span { display: block; }
+
+/* ---------- Carte « Ajouter un achat » v2 ---------- */
+.quick-hint { margin: 0; color: var(--muted); font-size: 12px; }
+.quick-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line-2);
+  background: var(--input);
+  color: var(--text-2);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.chip:hover { border-color: var(--blue); color: var(--text); }
+.chip.active { background: rgba(59, 130, 246, 0.16); border-color: var(--blue); color: #fff; }
+.scan-badge.error { background: rgba(244, 63, 94, 0.18); color: var(--red); font-weight: 700; }
+.error-text { color: var(--red); }
+.scan-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-link {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  color: var(--blue);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.btn-link:hover { text-decoration: underline; }
+a.btn-primary { text-decoration: none; }
