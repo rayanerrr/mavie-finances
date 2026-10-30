@@ -7,7 +7,11 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const month =
     request.nextUrl.searchParams.get("month") ?? currentMonthKey();
-  const rows = listExpenses({ month });
+  const type = request.nextUrl.searchParams.get("type") as "expense" | "income" | undefined;
+  const source = request.nextUrl.searchParams.get("source") as "receipt" | "text" | "recurring" | undefined;
+  const categoryId = request.nextUrl.searchParams.get("categoryId");
+  const subcategoryId = request.nextUrl.searchParams.get("subcategoryId");
+  const rows = listExpenses({ month, type, source, categoryId: categoryId ? Number(categoryId) : undefined, subcategoryId: subcategoryId ? Number(subcategoryId) : undefined, q: request.nextUrl.searchParams.get("q") ?? undefined });
 
   const header = [
     "date",

@@ -29,10 +29,12 @@ export type ExpenseInput = {
 export type ExpenseFilters = {
   month?: string;
   categoryId?: number;
+  subcategoryId?: number;
   accountId?: number;
   person?: string;
   q?: string;
   type?: "expense" | "income";
+  source?: "receipt" | "text" | "recurring";
   limit?: number;
 };
 
@@ -41,9 +43,11 @@ export function listExpenses(filters: ExpenseFilters = {}) {
 
   if (filters.month) conditions.push(eq(expenses.monthKey, filters.month));
   if (filters.categoryId) conditions.push(eq(expenses.categoryId, filters.categoryId));
+  if (filters.subcategoryId) conditions.push(eq(expenses.subcategoryId, filters.subcategoryId));
   if (filters.accountId) conditions.push(eq(expenses.accountId, filters.accountId));
   if (filters.person) conditions.push(eq(expenses.person, filters.person));
   if (filters.type) conditions.push(eq(expenses.type, filters.type));
+  if (filters.source) conditions.push(eq(expenses.source, filters.source));
   if (filters.q) {
     conditions.push(
       or(

@@ -83,6 +83,7 @@ export function DashboardHome() {
   const [month, setMonth] = useState(currentMonthKey());
   const [data, setData] = useState<InsightsPayload | null>(null);
   const [rows, setRows] = useState<TxRow[]>([]);
+  const [upcoming, setUpcoming] = useState<Array<{ date: string; name: string; amount: number; status: "paid" | "upcoming" }>>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [search, setSearch] = useState("");
   const [txCategory, setTxCategory] = useState("");
@@ -125,6 +126,10 @@ export function DashboardHome() {
   useEffect(() => {
     void loadInsights();
   }, [loadInsights]);
+
+  useEffect(() => {
+    void fetch(`/api/recurring/upcoming?month=${month}`).then((res) => res.ok ? res.json() : null).then((json) => setUpcoming(json?.items ?? []));
+  }, [month]);
 
   useEffect(() => {
     void loadRows();
@@ -222,7 +227,7 @@ export function DashboardHome() {
           <Link href="/transactions"><strong>{data?.count ?? 0}</strong><span>Transactions</span></Link>
           <a href="/depenses-fixes"><strong>{formatMoneyShort(data?.insights.potentialSavings ?? 0)}</strong><span>Économies possibles</span></a>
         </div>
-        <section className="card"><div className="card-head"><h2 className="card-title">Le mois en un coup d’œil</h2><Link className="btn ghost" href="/depenses-fixes">Voir les fixes</Link></div><MonthRail month={month} /></section>
+        <section className="card"><div className="card-head"><h2 className="card-title">Le mois en un coup d’œil</h2><Link className="btn ghost" href="/depenses-fixes">Voir les fixes</Link></div><MonthRail month={month} items={upcoming} /></section>
         <section className="kpis">
           <article className="card kpi">
             <span className="kpi-icon red">

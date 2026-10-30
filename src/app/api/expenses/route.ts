@@ -10,8 +10,10 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get("q") ?? undefined;
   const type = (searchParams.get("type") as "expense" | "income" | null) ?? undefined;
   const categoryIdRaw = searchParams.get("categoryId");
+  const subcategoryIdRaw = searchParams.get("subcategoryId");
   const accountIdRaw = searchParams.get("accountId");
   const limitRaw = searchParams.get("limit");
+  const source = (searchParams.get("source") as "receipt" | "text" | "recurring" | null) ?? undefined;
 
   const rows = listExpenses({
     month,
@@ -19,8 +21,10 @@ export async function GET(request: NextRequest) {
     q,
     type,
     categoryId: categoryIdRaw ? Number(categoryIdRaw) : undefined,
+    subcategoryId: subcategoryIdRaw ? Number(subcategoryIdRaw) : undefined,
     accountId: accountIdRaw ? Number(accountIdRaw) : undefined,
     limit: limitRaw ? Number(limitRaw) : undefined,
+    source,
   });
 
   return NextResponse.json({ expenses: rows });
