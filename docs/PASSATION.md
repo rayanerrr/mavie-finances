@@ -1,3 +1,33 @@
+# Passation : MaVie v1.1
+
+## État au 30 oct. 2026, 7 h 20 : LIVRÉ
+- **main** contient tout. 59 commits, aucune attribution IA. Branches : feat/moteur-gemini, feat/interface, feat/app-mac, feat/app-iphone, feat/moteur-saisie-telephone, feat/iphone-suivi, fix/integration.
+- **App Mac** :
+  - installée dans `/Applications/MaVie.app` ;
+  - le .dmg est dans `~/Documents/Telechargements/MaVie-1.0.0-arm64.dmg` ;
+  - les données sont dans `~/Library/Application Support/finances/` (le nom vient du champ name de package.json) ;
+  - la clé Gemini est déjà enregistrée dans la base de l'app (test : OK, modèle gemini-3.8-flash).
+- **App iPhone** : `~/Documents/Telechargements/MaVie.ipa`. Compilée avec Xcode 27.2 sans signature. À installer avec Xcode et un Apple ID gratuit, ou avec Sideloadly : voir ios/README.md.
+- **Dossier iCloud** : `~/Library/Mobile Documents/com~apple~CloudDocs/MaVie` (A-traiter/, Traites/, config.json, resume.json).
+- **Testé de bout en bout** :
+  - photo → Gemini → 8 articles bien classés ;
+  - dépense écrite sur le téléphone → ajoutée ;
+  - resume.json conforme ;
+  - les 8 pages de l'app emballée répondent 200 sans erreur ;
+  - la signature reste valide après un lancement.
+- **Pièges réglés** :
+  - fichiers marqués par AirDrop (node_modules réinstallés) ;
+  - cache `.next` périmé ;
+  - `allowedDevOrigins` pour 127.0.0.1 ;
+  - node_modules embarqués via desktop/after-pack.cjs ;
+  - runtimes Next manquants (outputFileTracingIncludes) ;
+  - `force-dynamic`, sinon Next écrit son cache dans l'app ;
+  - pour Xcode : `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
+- **Reste à faire** :
+  - pousser sur GitHub. C'est l'utilisateur qui lance `gh repo create rayanerrr/mavie-finances --private --source ~/Downloads/finances --push`, puis `git push origin --all` ;
+  - éventuellement : bouton « Ajouter sans reçu » plus visible côté Mac (la saisie manuelle existe dans /ajouter), et un test de l'app iPhone sur un vrai téléphone.
+
+---
 # Passation : MaVie v1 (si Claude n'est plus disponible, continuer avec Codex)
 
 ## Où on en est (30 oct. 2026)
