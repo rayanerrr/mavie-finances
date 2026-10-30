@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,6 +19,7 @@ import {
   CategoryIcon,
 } from "@/components/icons";
 import { ReceiptScanCard } from "@/components/ReceiptScanCard";
+import { MonthRail, SoftError } from "@/components/FinanceWidgets";
 import { TransactionsTable, type TxRow } from "@/components/TransactionsTable";
 import { BREAKDOWN_COLORS } from "@/lib/classify";
 import {
@@ -198,8 +200,20 @@ export function DashboardHome() {
           </div>
         </div>
 
-        {error && <p className="banner error">{error}</p>}
+        {error && <SoftError message={`${error} Réessaie ou ouvre Paramètres si une route manque.`} />}
 
+        <section className="hero">
+          <p className="hero-label">Pour le mois de {monthTitle(month).toLowerCase()}</p>
+          <strong className="hero-value">Il te reste {formatMoneyShort(Math.max(0, 5000 - total))}</strong>
+          <p>Après tes dépenses suivies. Ton budget de référence est de {formatMoneyShort(5000)}.</p>
+        </section>
+        <div className="stat-line">
+          <a href="/transactions"><strong>{formatMoneyShort(total)}</strong><span>Dépensé</span></a>
+          <a href="/budgets"><strong>{formatMoneyShort(data?.insights.essential ?? 0)}</strong><span>Essentiel</span></a>
+          <Link href="/recus"><strong>{rows.length}</strong><span>Transactions</span></Link>
+          <a href="/depenses-fixes"><strong>{formatMoneyShort(data?.insights.potentialSavings ?? 0)}</strong><span>Économies possibles</span></a>
+        </div>
+        <section className="card"><div className="card-head"><h2 className="card-title">Le mois en un coup d’œil</h2><Link className="btn ghost" href="/depenses-fixes">Voir les fixes</Link></div><MonthRail month={month} /></section>
         <section className="kpis">
           <article className="card kpi">
             <span className="kpi-icon red">
