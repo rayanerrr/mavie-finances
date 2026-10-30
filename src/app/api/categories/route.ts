@@ -7,7 +7,7 @@ import {
   getOrCreateSubcategory,
   listCategoriesWithSubs,
 } from "@/lib/categories";
-import { colorForCategory } from "@/lib/classify";
+import { colorForCategory, isIconKey } from "@/lib/classify";
 import { slugify } from "@/lib/slug";
 
 export const runtime = "nodejs";
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
   const category = await getOrCreateCategory(String(body.name), {
     color: body.color,
     kind: body.kind,
+    icon: isIconKey(body.icon) ? body.icon : undefined,
   });
 
   if (Array.isArray(body.subcategories)) {

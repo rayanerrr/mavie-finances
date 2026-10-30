@@ -1,8 +1,6 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   IconArrowRight,
   IconCamera,
@@ -45,7 +43,6 @@ function stepsDone(status?: string) {
 }
 
 export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
-  const router = useRouter();
   const [tab, setTab] = useState<Tab>("photo");
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -66,10 +63,7 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
   const loadReceipt = useCallback(async (id?: number) => {
     if (id) {
       const res = await fetch(`/api/receipts/${id}`);
-      if (res.ok) {
-        const json = await res.json();
-        setReceipt(json.receipt);
-      }
+      if (res.ok) setReceipt(await res.json());
       return;
     }
     const res = await fetch("/api/receipts");
@@ -99,14 +93,12 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
     })();
   }, [loadReceipt]);
 
-  const receiptStatus = receipt?.status;
-  const receiptId = receipt?.id;
   useEffect(() => {
-    if (!receiptId || !receiptStatus || !["pending", "analyzing"].includes(receiptStatus)) return;
-    const id = receiptId;
-    const timer = setInterval(async () => { await loadReceipt(id); }, 2000);
+    if (receipt?.status !== "pending") return;
+    const id = receipt.id;
+    const timer = setInterval(() => void loadReceipt(id), 4000);
     return () => clearInterval(timer);
-  }, [receiptStatus, receiptId, loadReceipt]);
+  }, [receipt?.status, receipt?.id, loadReceipt]);
 
   async function upload(file: File) {
     setBusy(true);
@@ -114,14 +106,12 @@ export function ReceiptScanCard({ onImported }: { onImported?: () => void }) {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("person", qPerson);
       if (qAccount) form.append("accountId", String(qAccount));
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error("Échec du téléversement");
       const json = await res.json();
       setReviewing(false);
       setReceipt({ ...json.receipt, items: [] });
-      if (json.receipt?.id) router.push(`/recus/${json.receipt.id}`);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Erreur");
     } finally {

@@ -7,6 +7,8 @@ import {
 } from "@/lib/categories";
 import { merchantKeyFromStore } from "@/lib/merchants";
 import { monthKeyFromDate } from "@/lib/money";
+import { matchRule } from "@/lib/category-admin";
+import { slugify } from "@/lib/slug";
 
 export type ExpenseInput = {
   date: string;
@@ -100,9 +102,14 @@ export function listExpenses(filters: ExpenseFilters = {}) {
 export async function createExpenses(items: ExpenseInput[]) {
   const created = [];
 
-  for (const item of items) {
+  for (let item of items) {
     const type = item.type ?? "expense";
-    const category = await getOrCreateCategory(item.category, {
+    // Règle par mot-clé du gestionnaire de catégories quand rien n'est choisi.
+    if (type === "expense" && (!item.category?.trim() || slugify(item.category) === "autres")) {
+      const forced = matchRule(item.description, item.store);
+      if (forced) item = { ...item, category: forced.category, subcategory: forced.subcategory ?? item.subcategory };
+    }
+    const category = await getOrCreateCategory(item.category?.trim() || "Autres", {
       kind:
         item.categoryKind ??
         (type === "income" ? "income" : undefined),

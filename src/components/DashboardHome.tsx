@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -19,7 +18,6 @@ import {
   CategoryIcon,
 } from "@/components/icons";
 import { ReceiptScanCard } from "@/components/ReceiptScanCard";
-import { MonthRail, SoftError } from "@/components/FinanceWidgets";
 import { TransactionsTable, type TxRow } from "@/components/TransactionsTable";
 import { BREAKDOWN_COLORS } from "@/lib/classify";
 import {
@@ -47,7 +45,6 @@ type Suggestion = {
 
 type InsightsPayload = {
   total: number;
-  count: number;
   byCategory: CategoryTotal[];
   insights: {
     previousMonthName: string;
@@ -57,7 +54,6 @@ type InsightsPayload = {
     essentialPct: number;
     discretionaryPct: number;
     potentialSavings: number;
-    incomeTotal: number;
     suggestions: Suggestion[];
     evolution: {
       categoryNames: string[];
@@ -83,28 +79,23 @@ export function DashboardHome() {
   const [month, setMonth] = useState(currentMonthKey());
   const [data, setData] = useState<InsightsPayload | null>(null);
   const [rows, setRows] = useState<TxRow[]>([]);
-  const [upcoming, setUpcoming] = useState<Array<{ date: string; name: string; amount: number; status: "paid" | "upcoming" }>>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [search, setSearch] = useState("");
   const [txCategory, setTxCategory] = useState("");
   const [txAccount, setTxAccount] = useState("");
   const [txPeriod, setTxPeriod] = useState<"month" | "all">("month");
+  const [evoMode, setEvoMode] = useState<"category" | "total">("category");
   const [breakdownId, setBreakdownId] = useState<number | null>(null);
   const [breakdown, setBreakdown] = useState<
     Array<{ subcategoryName: string | null; total: number }>
   >([]);
   const [error, setError] = useState<string | null>(null);
-  const [budget, setBudget] = useState<number | null>(null);
 
   const loadInsights = useCallback(async () => {
     try {
-      const [res, budgetRes] = await Promise.all([fetch(`/api/insights?month=${month}`), fetch(`/api/budgets?month=${month}`)]);
+      const res = await fetch(`/api/insights?month=${month}`);
       if (!res.ok) throw new Error("Impossible de charger le tableau de bord");
       setData(await res.json());
-      if (budgetRes.ok) {
-        const json = await budgetRes.json();
-        setBudget(json.budgets.reduce((sum: number, item: { amount: number }) => sum + Number(item.amount), 0) || null);
-      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -125,10 +116,6 @@ export function DashboardHome() {
   useEffect(() => {
     void loadInsights();
   }, [loadInsights]);
-
-  useEffect(() => {
-    void fetch(`/api/recurring/upcoming?month=${month}`).then((res) => res.ok ? res.json() : null).then((json) => setUpcoming(json?.items ?? []));
-  }, [month]);
 
   useEffect(() => {
     void loadRows();
@@ -184,8 +171,6 @@ export function DashboardHome() {
 
   const deltaPct = data?.insights.deltaPct ?? null;
   const total = data?.total ?? 0;
-  const income = data?.insights.incomeTotal ?? 0;
-  const remaining = income > 0 ? income - total : budget !== null ? budget - total : null;
 
   return (
     <div className="dash">
@@ -213,20 +198,8 @@ export function DashboardHome() {
           </div>
         </div>
 
-        {error && <SoftError message={`${error} Réessaie ou ouvre Paramètres si une route manque.`} />}
+        {error && <p className="banner error">{error}</p>}
 
-        <section className="hero">
-          <p className="hero-label">Pour le mois de {monthTitle(month).toLowerCase()}</p>
-          <strong className="hero-value">{remaining === null ? "Aucun budget défini" : `Il te reste ${formatMoneyShort(remaining)}`}</strong>
-          <p>{remaining !== null ? (income > 0 ? "Après tes revenus et tes dépenses suivies." : "Après tes dépenses suivies, selon tes budgets.") : "Définis un budget ou un revenu pour voir ce qu’il te reste."}</p>
-        </section>
-        <div className="stat-line">
-          <a href="/transactions"><strong>{formatMoneyShort(total)}</strong><span>Dépensé</span></a>
-          <a href="/budgets"><strong>{formatMoneyShort(data?.insights.essential ?? 0)}</strong><span>Essentiel</span></a>
-          <Link href="/transactions"><strong>{data?.count ?? 0}</strong><span>Transactions</span></Link>
-          <a href="/depenses-fixes"><strong>{formatMoneyShort(data?.insights.potentialSavings ?? 0)}</strong><span>Économies possibles</span></a>
-        </div>
-        <section className="card"><div className="card-head"><h2 className="card-title">Le mois en un coup d’œil</h2><Link className="btn ghost" href="/depenses-fixes">Voir les fixes</Link></div><MonthRail month={month} items={upcoming} /></section>
         <section className="kpis">
           <article className="card kpi">
             <span className="kpi-icon red">
@@ -310,11 +283,22 @@ export function DashboardHome() {
           </div>
 
           <div className="card">
-            <div className="card-head"><h2 className="card-title">Évolution des dépenses</h2><span className="muted small">6 mois</span></div>
+            <div className="card-head">
+              <h2 className="card-title">Évolution des dépenses</h2>
+              <select
+                className="mini-select"
+                value={evoMode}
+                onChange={(e) => setEvoMode(e.target.value as "category" | "total")}
+              >
+                <option value="category">Par catégorie</option>
+                <option value="total">Total</option>
+              </select>
+            </div>
             {data && (
               <EvolutionChart
                 series={data.insights.evolution.series}
                 categoryNames={data.insights.evolution.categoryNames}
+                mode={evoMode}
               />
             )}
           </div>

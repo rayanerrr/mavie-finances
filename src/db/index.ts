@@ -127,6 +127,14 @@ function ensureDb() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS keyword_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      keyword TEXT NOT NULL,
+      category_id INTEGER NOT NULL REFERENCES categories(id),
+      subcategory_id INTEGER REFERENCES subcategories(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -135,6 +143,8 @@ function ensureDb() {
 
   ensureColumn(sqlite, "categories", "color", "TEXT NOT NULL DEFAULT '#94a3b8'");
   ensureColumn(sqlite, "categories", "kind", "TEXT NOT NULL DEFAULT 'essential'");
+  ensureColumn(sqlite, "categories", "icon", "TEXT");
+  ensureColumn(sqlite, "categories", "archived", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(sqlite, "expenses", "account_id", "INTEGER REFERENCES accounts(id)");
   ensureColumn(sqlite, "expenses", "receipt_id", "INTEGER");
   ensureColumn(sqlite, "expenses", "type", "TEXT NOT NULL DEFAULT 'expense'");

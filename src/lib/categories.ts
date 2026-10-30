@@ -6,7 +6,7 @@ import { slugify } from "@/lib/slug";
 
 export async function getOrCreateCategory(
   name: string,
-  opts?: { color?: string; kind?: "essential" | "discretionary" | "income" },
+  opts?: { color?: string; kind?: "essential" | "discretionary" | "income"; icon?: string },
 ) {
   const trimmed = name.trim();
   const slug = slugify(trimmed);
@@ -26,6 +26,7 @@ export async function getOrCreateCategory(
       slug,
       color: opts?.color ?? colorForCategory(trimmed),
       kind: opts?.kind ?? "essential",
+      icon: opts?.icon ?? null,
     })
     .returning()
     .get();
