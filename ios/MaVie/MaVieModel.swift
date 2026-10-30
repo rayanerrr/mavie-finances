@@ -23,7 +23,7 @@ final class MaVieModel: ObservableObject {
 
     init() {
         folderObserver = folder.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
-        if let data = defaults.data(forKey: "history"), let saved = try? JSONDecoder().decode([SentReceipt].self, from: data) { history = saved }
+        if let data = defaults.data(forKey: "history"), let saved = try? JSONDecoder().decode([SentReceipt].self, from: data) { history = saved; saveHistory() }
         observer = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.retryQueueAndRefresh() }
         }
@@ -50,7 +50,7 @@ final class MaVieModel: ObservableObject {
         screen = .review
     }
 
-    func clearHistory() { history.removeAll() }
+    func clearHistory() { history.removeAll(); defaults.removeObject(forKey: "history"); SentMediaStore.prune(keeping: []) }
 
     func refreshConfig() {
         _ = folder.withFolder { root in
@@ -86,7 +86,8 @@ final class MaVieModel: ObservableObject {
         defaults.lastAccount = account
         let wrote = write(media: data, ext: ext, id: id, companion: companion)
         if !wrote { try? queue.save(media: data, ext: ext, companion: companion, id: id) }
-        history.insert(SentReceipt(id: id, sentAt: Date()), at: 0)
+        let pageCount = SentMediaStore.save(images: images, id: id)
+        history.insert(SentReceipt(id: id, sentAt: Date(), person: companion.person, accountName: companion.accountName, note: companion.note, pageCount: pageCount), at: 0)
         history = Array(history.prefix(30))
         saveHistory()
         isSending = false
@@ -104,7 +105,7 @@ final class MaVieModel: ObservableObject {
         let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(expense) else { return }
         if !write(expense: data, id: id) { try? queue.save(expense: data, id: id) }
-        history.insert(SentReceipt(id: id, sentAt: Date(), kind: "expense"), at: 0); history = Array(history.prefix(30)); saveHistory(); refreshResults()
+        history.insert(SentReceipt(id: id, sentAt: Date(), kind: "expense", person: expense.person, accountName: expense.accountName, note: expense.note, sentDescription: description, sentAmount: amount), at: 0); history = Array(history.prefix(30)); saveHistory(); refreshResults()
     }
 
     func refreshResults() {
@@ -177,7 +178,11 @@ final class MaVieModel: ObservableObject {
         return success
     }
 
-    private func saveHistory() { if let data = try? JSONEncoder().encode(history) { defaults.set(data, forKey: "history") } }
+    private func saveHistory() {
+        history = Array(history.prefix(30))
+        if let data = try? JSONEncoder().encode(history) { defaults.set(data, forKey: "history") }
+        SentMediaStore.prune(keeping: Set(history.map(\.id)))
+    }
     private func timestampName() -> String {
         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         return "\(formatter.string(from: Date()))_\(String(UUID().uuidString.prefix(4)))"

@@ -117,12 +117,24 @@ struct SentReceipt: Codable, Identifiable {
     let sentAt: Date
     var kind: String
     var result: ReceiptResult?
+    let person: String?
+    let accountName: String?
+    let note: String?
+    let sentDescription: String?
+    let sentAmount: Double?
+    let pageCount: Int?
 
-    init(id: String, sentAt: Date, kind: String = "receipt", result: ReceiptResult? = nil) { self.id = id; self.sentAt = sentAt; self.kind = kind; self.result = result }
+    init(id: String, sentAt: Date, kind: String = "receipt", result: ReceiptResult? = nil, person: String? = nil, accountName: String? = nil, note: String? = nil, sentDescription: String? = nil, sentAmount: Double? = nil, pageCount: Int? = nil) {
+        self.id = id; self.sentAt = sentAt; self.kind = kind; self.result = result
+        self.person = person; self.accountName = accountName; self.note = note
+        self.sentDescription = sentDescription; self.sentAmount = sentAmount; self.pageCount = pageCount
+    }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id); sentAt = try c.decode(Date.self, forKey: .sentAt)
         kind = try c.decodeIfPresent(String.self, forKey: .kind) ?? "receipt"; result = try c.decodeIfPresent(ReceiptResult.self, forKey: .result)
+        person = try c.decodeIfPresent(String.self, forKey: .person); accountName = try c.decodeIfPresent(String.self, forKey: .accountName); note = try c.decodeIfPresent(String.self, forKey: .note)
+        sentDescription = try c.decodeIfPresent(String.self, forKey: .sentDescription); sentAmount = try c.decodeIfPresent(Double.self, forKey: .sentAmount); pageCount = try c.decodeIfPresent(Int.self, forKey: .pageCount)
     }
 }
 

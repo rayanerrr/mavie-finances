@@ -178,7 +178,7 @@ struct HistoryView: View {
         NavigationStack {
             List {
                 ForEach(model.history) { item in
-                    VStack(alignment: .leading, spacing: 5) { Text(item.id).font(.subheadline.monospaced()); Text(status(item)).font(.subheadline).foregroundStyle(statusColor(item.result)) }
+                    NavigationLink { SentReceiptDetailView(model: model, original: item) } label: { SentReceiptRow(item: item) }
                         .listRowBackground(AppColors.panel)
                 }
             }.scrollContentBackground(.hidden).refreshable { model.refreshResults() }
@@ -194,15 +194,113 @@ struct HistoryView: View {
             }
         }
     }
-    private func status(_ item: SentReceipt) -> String {
-        let result = item.result
-        guard let result else { return "En attente du Mac" }
-        if result.status?.lowercased() == "error" || result.error != nil { return "Erreur : \(result.error ?? "Le Mac n'a pas pu lire le reçu")" }
-        if item.kind == "expense" && result.status?.lowercased() == "added" { return "Ajoutée : \(result.category ?? "Dépense") · \(money(result.amount ?? 0))" }
-        let total = result.total.map { String(format: "%.2f $", $0).replacingOccurrences(of: ".", with: ",") } ?? "—"
-        return "Lu : \(result.store ?? "Reçu") · \(total) · \(result.itemsCount ?? 0) articles"
+}
+
+private extension SentReceipt {
+    var displayTitle: String {
+        [result?.store, result?.description, sentDescription].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.first { !$0.isEmpty } ?? (kind == "expense" ? "Dépense" : "Reçu")
     }
-    private func statusColor(_ result: ReceiptResult?) -> Color { result?.error == nil && result?.status?.lowercased() != "error" ? (result == nil ? AppColors.muted : .green) : .red }
+    var displayAmount: Double? { result?.total ?? result?.amount ?? sentAmount }
+    var hasError: Bool { result?.status?.lowercased() == "error" || result?.error != nil }
+    var statusTitle: String { result == nil ? "En attente du Mac" : hasError ? "Erreur" : result?.status?.lowercased() == "added" ? "Ajoutée" : "Lu" }
+    var statusTint: Color { result == nil ? AppColors.muted : hasError ? .red : .green }
+    var fallbackIcon: String { kind == "expense" ? "creditcard" : "doc.text.image" }
+}
+
+private struct SentStatusBadge: View {
+    let item: SentReceipt
+    var body: some View {
+        Text(item.statusTitle).font(.caption.weight(.semibold)).foregroundStyle(item.statusTint)
+            .padding(.horizontal, 8).padding(.vertical, 4).background(item.statusTint.opacity(0.15)).clipShape(Capsule())
+    }
+}
+
+private struct SentReceiptRow: View {
+    let item: SentReceipt
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Group {
+                if let image = SentMediaStore.thumbnail(id: item.id) { Image(uiImage: image).resizable().scaledToFill() }
+                else { Image(systemName: item.fallbackIcon).font(.title2).foregroundStyle(AppColors.muted).frame(maxWidth: .infinity, maxHeight: .infinity).background(AppColors.background) }
+            }.frame(width: 54, height: 68).clipShape(RoundedRectangle(cornerRadius: 8)).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(item.displayTitle).font(.headline).foregroundStyle(AppColors.text).lineLimit(2)
+                Text(sentDate(item.sentAt)).font(.caption).foregroundStyle(AppColors.muted)
+                if let amount = item.displayAmount { Text(money(amount)).font(.subheadline.weight(.semibold)).foregroundStyle(AppColors.text) }
+                SentStatusBadge(item: item)
+                if item.result == nil { Text("Mise à jour automatique").font(.caption2).foregroundStyle(AppColors.muted) }
+            }
+        }.padding(.vertical, 4)
+    }
+}
+
+private struct SentReceiptDetailView: View {
+    @ObservedObject var model: MaVieModel
+    let original: SentReceipt
+    private var item: SentReceipt { model.history.first { $0.id == original.id } ?? original }
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 18) {
+                Text(item.displayTitle).font(.title2.bold())
+                Text(sentDate(item.sentAt)).font(.subheadline).foregroundStyle(AppColors.muted)
+                SentStatusBadge(item: item)
+                if item.hasError { Text(item.result?.error ?? "Le Mac n’a pas pu lire le reçu.").foregroundStyle(.red).textSelection(.enabled) }
+                else if item.result == nil { Text("Le résultat apparaîtra automatiquement dès que le Mac aura traité cet envoi.").font(.subheadline).foregroundStyle(AppColors.muted) }
+                VStack(alignment: .leading, spacing: 10) {
+                    if let store = item.result?.store { detail("Magasin", store) }
+                    if let description = item.result?.description ?? item.sentDescription { detail("Description", description) }
+                    if let amount = item.displayAmount { detail("Total", money(amount)) }
+                    if let count = item.result?.itemsCount { detail("Articles", String(count)) }
+                    if let category = item.result?.category { detail("Catégorie", category) }
+                    detail("Personne", item.person ?? "Non renseignée")
+                    detail("Compte", item.accountName ?? "Non renseigné")
+                    detail("Note", item.note ?? "Aucune")
+                }.padding(14).frame(maxWidth: .infinity, alignment: .leading).background(AppColors.panel).clipShape(RoundedRectangle(cornerRadius: 12))
+                if let count = item.pageCount, count > 0 {
+                    ForEach(0..<count, id: \.self) { page in
+                        SentReceiptPage(url: SentMediaStore.pageURL(id: item.id, page: page), page: page, count: count)
+                    }
+                } else {
+                    VStack(spacing: 10) {
+                        Image(systemName: item.fallbackIcon).font(.system(size: 40))
+                        Text(item.kind == "expense" ? "Dépense sans reçu" : "Aucune copie locale pour cet envoi")
+                    }.font(.subheadline).foregroundStyle(AppColors.muted).frame(maxWidth: .infinity).padding(.vertical, 28)
+                }
+            }.padding(20)
+        }.background(AppColors.background).navigationTitle("Détail de l’envoi").navigationBarTitleDisplayMode(.inline)
+    }
+    private func detail(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) { Text(label).font(.caption).foregroundStyle(AppColors.muted); Text(value).font(.subheadline).textSelection(.enabled) }
+    }
+}
+
+private struct SentReceiptPage: View {
+    let url: URL
+    let page: Int
+    let count: Int
+    @State private var image: UIImage?
+    @GestureState private var magnification: CGFloat = 1
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if count > 1 { Text("Page \(page + 1) sur \(count)").font(.caption).foregroundStyle(AppColors.muted) }
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit().scaleEffect(magnification)
+                    .gesture(MagnifyGesture().updating($magnification) { value, scale, _ in scale = min(max(value.magnification, 1), 4) })
+                    .clipped().accessibilityLabel("Photo du reçu, page \(page + 1)")
+                Text("Pincez pour agrandir").font(.caption2).foregroundStyle(AppColors.muted)
+            } else { Label("Copie locale indisponible", systemImage: "photo").foregroundStyle(AppColors.muted) }
+        }.task(id: url) { image = UIImage(contentsOfFile: url.path) }
+    }
+}
+
+private func sentDate(_ date: Date) -> String {
+    let calendar = Calendar.current
+    let formatter = DateFormatter(); formatter.locale = Locale(identifier: "fr_CA"); formatter.dateFormat = "H 'h' mm"
+    let time = formatter.string(from: date)
+    if calendar.isDateInToday(date) { return "Aujourd’hui \(time)" }
+    if calendar.isDateInYesterday(date) { return "Hier \(time)" }
+    formatter.dateFormat = calendar.component(.year, from: date) == calendar.component(.year, from: Date()) ? "d MMM" : "d MMM yyyy"
+    return "\(formatter.string(from: date)) \(time)"
 }
 
 private func money(_ value: Double) -> String { let formatter = NumberFormatter(); formatter.locale = Locale(identifier: "fr_CA"); formatter.numberStyle = .currency; formatter.currencySymbol = "$"; return formatter.string(from: NSNumber(value: value)) ?? "\(value) $" }
