@@ -11,7 +11,16 @@ fs.mkdirSync(out, { recursive: true });
 const data = fs.mkdtempSync(path.join(os.tmpdir(), 'mavie-smoke-data-'));
 const json = path.join(out, `resultat-${Date.now()}.json`);
 const binary = path.join(appPath, 'Contents/MacOS/MaVie');
-const sqlite = spawnSync(binary, ['-e', 'const db = require(process.argv[1])(":memory:"); console.log(db.prepare("select 1 as ok").get()); db.close()', path.join(appPath, 'Contents/Resources/server/node_modules/better-sqlite3')], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' });
+const resources = path.join(appPath, 'Contents/Resources/server');
+const tracedNodeModules = path.join(resources, '.next/node_modules');
+const sqliteCandidates = [
+  path.join(resources, 'node_modules/better-sqlite3'),
+  ...(fs.existsSync(tracedNodeModules) ? fs.readdirSync(tracedNodeModules, { withFileTypes: true }) : [])
+    .filter(entry => entry.name.startsWith('better-sqlite3-'))
+    .map(entry => path.join(tracedNodeModules, entry.name)),
+];
+const sqliteModule = sqliteCandidates.find(candidate => fs.existsSync(candidate));
+const sqlite = spawnSync(binary, ['-e', 'const db = require(process.argv[1])(":memory:"); console.log(db.prepare("select 1 as ok").get()); db.close()', sqliteModule || ''], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' });
 console.log(`SQLite Electron : ${sqlite.status === 0 ? 'OK' : 'ÉCHEC'}`);
 if (sqlite.status !== 0) { console.error(sqlite.stderr || sqlite.error); process.exit(1); }
 const env = { ...process.env, FINANCES_DATA_DIR: data, MAVIE_SMOKE: '1', MAVIE_SMOKE_OUT: json };

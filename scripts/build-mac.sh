@@ -24,6 +24,8 @@ rsync -a --delete --exclude=.mavie-build --exclude=.git --exclude=node_modules -
 cd "$BUILD"
 echo '2/7 · Installation des dépendances'
 npm ci
+# npm peut conserver l’archive Electron sans exécuter son extraction.
+node node_modules/electron/install.js
 echo '3/7 · Construction Next standalone'
 export FINANCES_DATA_DIR="$BUILD/build-data"
 MAVIE_BUILD=1 npm run build
@@ -32,9 +34,15 @@ rsync -a --delete .next/static/ .next/standalone/.next/static/
 rsync -a --delete public/ .next/standalone/public/
 # Next ne trace pas les sources C++ nécessaires à la recompilation.
 rsync -a --delete node_modules/better-sqlite3/ .next/standalone/node_modules/better-sqlite3/
+# Le traceur crée un lien vers SQLite dans .next ; electron-builder ne sait pas
+# toujours le suivre depuis une extraResource. Garder une copie réelle ici.
+for SQLITE_TRACE in .next/standalone/.next/node_modules/better-sqlite3-*; do
+  [[ -L "$SQLITE_TRACE" ]] || continue
+  rm "$SQLITE_TRACE"
+  rsync -a --delete .next/standalone/node_modules/better-sqlite3/ "$SQLITE_TRACE/"
+done
 echo '5/7 · Recompilation SQLite uniquement dans standalone'
-ELECTRON_VERSION="$(node -p "require('electron/package.json').version")"
-npx electron-rebuild --force --only better-sqlite3 --version "$ELECTRON_VERSION" --arch arm64 --module-dir "$BUILD/.next/standalone"
+node desktop/rebuild.cjs
 ELECTRON_BIN="$(node -p "require('electron')")"
 ELECTRON_RUN_AS_NODE=1 "$ELECTRON_BIN" -e 'const db = require(process.argv[1])(":memory:"); console.log("SQLite Electron :", db.prepare("select 1 as ok").get()); db.close()' "$BUILD/.next/standalone/node_modules/better-sqlite3"
 node -e 'const db = require("better-sqlite3") (":memory:"); db.close(); console.log("SQLite Node système : OK")'
