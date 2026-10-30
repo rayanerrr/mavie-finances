@@ -119,14 +119,38 @@ struct ExpenseFormView: View {
     var body: some View {
         NavigationStack { Form {
             Section { TextField("0,00 $", text: $amount).keyboardType(.decimalPad).font(.system(size: 34, weight: .semibold, design: .serif)); TextField("Description", text: $description) }
-            Section("Raccourcis") { HStack { QuickChip("Essence", category: "Transport", sub: "Essence", description: $description, categoryValue: $category, subcategory: $subcategory); QuickChip("Épicerie", category: "Alimentation", sub: nil, description: $description, categoryValue: $category, subcategory: $subcategory); QuickChip("Restaurant", category: "Restaurants", sub: "Restaurant", description: $description, categoryValue: $category, subcategory: $subcategory) }; HStack { QuickChip("Café", category: "Restaurants", sub: "Café", description: $description, categoryValue: $category, subcategory: $subcategory); QuickChip("Stationnement", category: "Transport", sub: "Stationnement", description: $description, categoryValue: $category, subcategory: $subcategory); QuickChip("Pharmacie", category: "Santé & Fitness", sub: "Pharmacie", description: $description, categoryValue: $category, subcategory: $subcategory) } }
+            Section("Raccourcis") {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        QuickChip("Essence", category: "Transport", sub: "Essence", description: $description, categoryValue: $category, subcategory: $subcategory)
+                        QuickChip("Épicerie", category: "Alimentation", sub: nil, description: $description, categoryValue: $category, subcategory: $subcategory)
+                        QuickChip("Restaurant", category: "Restaurants", sub: "Restaurant", description: $description, categoryValue: $category, subcategory: $subcategory)
+                        QuickChip("Café", category: "Restaurants", sub: "Café", description: $description, categoryValue: $category, subcategory: $subcategory)
+                        QuickChip("Stationnement", category: "Transport", sub: "Stationnement", description: $description, categoryValue: $category, subcategory: $subcategory)
+                        QuickChip("Pharmacie", category: "Santé & Fitness", sub: "Pharmacie", description: $description, categoryValue: $category, subcategory: $subcategory)
+                    }
+                }
+            }
             Section { Picker("Catégorie", selection: $category) { ForEach(model.categories.filter { $0.kind != "income" }) { Text($0.name).tag($0.name) } }; Picker("Sous-catégorie", selection: $subcategory) { Text("Aucune").tag(""); ForEach(selectedCategory?.subcategories ?? [], id: \.self) { Text($0).tag($0) } }.disabled(selectedCategory?.subcategories.isEmpty ?? true); Picker("Type", selection: $type) { Text("Dépense").tag("expense"); Text("Revenu").tag("income") } }
             Section { DatePicker("Date", selection: $date, displayedComponents: .date); Picker("Personne", selection: $person) { Text("Aucune").tag(""); ForEach(model.people, id: \.self) { Text($0).tag($0) } }; Picker("Compte", selection: $account) { Text("Aucun").tag(""); ForEach(model.accounts) { Text($0.name).tag($0.name) }; }; TextField("Note (facultatif)", text: $note) }
         }.navigationTitle("Sans reçu").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Ajouter") { model.addExpense(type: type, amountText: amount, description: description, category: category, subcategory: subcategory.isEmpty ? nil : subcategory, date: date, person: person, account: account, note: note); dismiss() }.disabled(Double(amount.replacingOccurrences(of: ",", with: ".")) == nil || description.isEmpty) } }.onAppear { if category == "Autres" { category = model.categories.first(where: { $0.kind != "income" })?.name ?? "Autres" }; person = model.people.first ?? ""; account = model.accounts.first?.name ?? "" } }
     }
 }
 
-struct QuickChip: View { let title: String; let cat: String; let sub: String?; @Binding var description: String; @Binding var categoryValue: String; @Binding var subcategory: String; init(_ title: String, category: String, sub: String?, description: Binding<String>, categoryValue: Binding<String>, subcategory: Binding<String>) { self.title = title; cat = category; self.sub = sub; _description = description; _categoryValue = categoryValue; _subcategory = subcategory }; var body: some View { Button(title) { description = title; categoryValue = cat; subcategory = sub ?? "" }.font(.caption).padding(7).background(AppColors.panel).clipShape(Capsule()) } }
+struct QuickChip: View {
+    let title: String; let cat: String; let sub: String?
+    @Binding var description: String; @Binding var categoryValue: String; @Binding var subcategory: String
+    init(_ title: String, category: String, sub: String?, description: Binding<String>, categoryValue: Binding<String>, subcategory: Binding<String>) { self.title = title; cat = category; self.sub = sub; _description = description; _categoryValue = categoryValue; _subcategory = subcategory }
+    private var isSelected: Bool { categoryValue == cat && subcategory == (sub ?? "") }
+    var body: some View {
+        Button { description = title; categoryValue = cat; subcategory = sub ?? "" } label: {
+            Text(title).font(.caption.weight(.semibold)).fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 14).padding(.vertical, 8).frame(minHeight: 44)
+                .foregroundStyle(isSelected ? .white : AppColors.text)
+                .background(isSelected ? AppColors.red : AppColors.panel).clipShape(Capsule()).contentShape(Capsule())
+        }.buttonStyle(.plain).accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
 
 struct ReviewView: View {
     @ObservedObject var model: MaVieModel
