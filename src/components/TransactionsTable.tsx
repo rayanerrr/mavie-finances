@@ -18,6 +18,8 @@ export type TxRow = {
   subcategoryName: string | null;
   accountName: string | null;
   notes: string | null;
+  accountId?: number | null;
+  source?: string;
 };
 
 function formatShortDate(date: string) {
@@ -29,7 +31,7 @@ function formatShortDate(date: string) {
   }).format(d);
 }
 
-export function TransactionsTable({ rows }: { rows: TxRow[] }) {
+export function TransactionsTable({ rows, onSelect }: { rows: TxRow[]; onSelect?: (row: TxRow) => void }) {
   if (!rows.length) {
     return <p className="empty">Aucune transaction pour ces filtres.</p>;
   }
@@ -55,7 +57,7 @@ export function TransactionsTable({ rows }: { rows: TxRow[] }) {
           {rows.map((tx) => {
             const income = tx.type === "income";
             return (
-              <tr key={tx.id}>
+              <tr key={tx.id} onClick={() => onSelect?.(tx)} className={onSelect ? "tx-row" : undefined}>
                 <td className="check">
                   <input type="checkbox" aria-label={`Sélectionner ${tx.description}`} />
                 </td>
@@ -63,7 +65,7 @@ export function TransactionsTable({ rows }: { rows: TxRow[] }) {
                 <td>
                   <span className="merchant">
                     <MerchantLogo merchantKey={tx.merchantKey} store={tx.store} />
-                    {tx.merchantKey || tx.store ? merchantLabel(tx.merchantKey, tx.store) : <span className="muted">—</span>}
+                    {merchantLabel(tx.merchantKey, tx.store)}
                   </span>
                 </td>
                 <td className="desc" title={tx.person ? `Pour : ${tx.person}` : undefined}>

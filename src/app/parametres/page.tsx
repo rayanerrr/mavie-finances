@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { SoftError } from "@/components/FinanceWidgets";
+import { Notice } from "@/components/ui";
 
 export default function ParametresPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -69,10 +69,10 @@ export default function ParametresPage() {
 
   return (
     <AppShell title="Paramètres">
-      {error && <SoftError message={error} />}
-      <section className="panel settings-section"><div><h2>Gemini</h2><p>Ta clé sert seulement à lire les reçus. Elle reste sur ton Mac.</p><a className="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Obtenir une clé Gemini</a></div><div className="quick-form"><label>Clé API<input type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder={settings.geminiKeyHint ? `Clé enregistrée ${settings.geminiKeyHint}` : "AIza…"} /></label><div className="actions"><button type="button" className="btn primary" onClick={() => void save()}>Enregistrer</button><button type="button" className="btn" onClick={() => void testGemini()}>Tester la connexion</button></div></div></section>
-      <section className="panel settings-section"><div><h2>iPhone et iCloud</h2><p>Prends une photo dans l’app iPhone. Le Mac la lit dans iCloud et l’ajoute à tes reçus.</p></div><div className="quick-form"><label className="checkbox-label"><input type="checkbox" checked={inboxEnabled} onChange={e => setInboxEnabled(e.target.checked)} />Surveiller le dossier automatiquement</label><label>Chemin iCloud<input value={inboxDir} onChange={e => setInboxDir(e.target.value)} placeholder="~/Library/Mobile Documents/…/MaVie" /></label><ol><li>Active iCloud Drive.</li><li>Choisis MaVie dans l’app iPhone.</li><li>Vérifie le reçu ici avant de le confirmer.</li></ol></div></section>
-      <section className="panel">
+      {error && <Notice error={error} />}
+      <section className="card settings-section"><div><h2 className="card-title">Gemini</h2><p>Ta clé sert seulement à lire les reçus. Elle reste sur ton Mac.</p><a className="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Obtenir une clé Gemini</a></div><div className="quick-form"><label>Clé API<input type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder={settings.geminiKeyHint ? `Clé enregistrée ${settings.geminiKeyHint}` : "AIza…"} /></label><div className="actions"><button type="button" className="btn-primary" onClick={() => void save()}>Enregistrer</button><button type="button" className="btn-ghost" onClick={() => void testGemini()}>Tester la connexion</button></div></div></section>
+      <section className="card settings-section"><div><h2 className="card-title">iPhone et iCloud</h2><p>Prends une photo dans l’app iPhone. Le Mac la lit dans iCloud et l’ajoute à tes reçus.</p></div><div className="quick-form"><label className="checkbox-label"><input type="checkbox" checked={inboxEnabled} onChange={e => setInboxEnabled(e.target.checked)} />Surveiller le dossier automatiquement</label><label>Chemin iCloud<input value={inboxDir} onChange={e => setInboxDir(e.target.value)} placeholder="~/Library/Mobile Documents/…/MaVie" /></label><ol><li>Active iCloud Drive.</li><li>Choisis MaVie dans l’app iPhone.</li><li>Vérifie le reçu ici avant de le confirmer.</li></ol></div></section>
+      <section className="card settings-section">
         <div className="quick-form">
           <label>
             Nom du foyer
@@ -89,7 +89,7 @@ export default function ParametresPage() {
             Devise
             <input value={settings.currency ?? "CAD"} disabled />
           </label>
-          <button type="button" className="btn primary" onClick={() => void save()}>
+          <button type="button" className="btn-primary" onClick={() => void save()}>
             Enregistrer
           </button>
           {msg && <p className="muted">{msg}</p>}

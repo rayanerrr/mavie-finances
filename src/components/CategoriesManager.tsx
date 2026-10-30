@@ -202,7 +202,9 @@ export function CategoriesManager() {
   const month = currentMonthKey();
   const [data, setData] = useState<Overview | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(() =>
+    typeof window === "undefined" ? null : Number(new URLSearchParams(window.location.search).get("id")) || null,
+  );
   const [panelOpen, setPanelOpen] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
   const [query, setQuery] = useState("");
