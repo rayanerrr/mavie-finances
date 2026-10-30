@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createReceiptFromFile, listReceipts } from "@/lib/receipts";
+import { supportedMimes } from "@/lib/gemini";
+import { apiError } from "@/lib/api";
+import { after, NextRequest, NextResponse } from "next/server";
+import { createReceiptFromFile, listReceipts, markAnalyzing, runReceiptAnalysis } from "@/lib/receipts";
 
 export const runtime = "nodejs";
 
@@ -9,12 +11,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "file requis" }, { status: 400 });
   }
 
+  if (!supportedMimes.includes(file.type)) throw new Error("Format non pris en charge");
   const buffer = Buffer.from(await file.arrayBuffer());
   const person = form.get("person");
   const store = form.get("store");
@@ -31,5 +35,8 @@ export async function POST(request: NextRequest) {
     notes: typeof notes === "string" ? notes : null,
   });
 
-  return NextResponse.json({ receipt }, { status: 201 });
+  const analyzing = markAnalyzing(receipt.id);
+  after(()=>runReceiptAnalysis(receipt.id));
+  return NextResponse.json({ receipt:analyzing }, { status: 201 });
+  } catch(error) { return apiError(error); }
 }
