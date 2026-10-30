@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createExpenses, listExpenses, type ExpenseInput } from "@/lib/expenses";
+import { schedulePhoneSummary } from "@/lib/phone-summary";
 
 export const runtime = "nodejs";
 
@@ -53,5 +54,6 @@ export async function POST(request: NextRequest) {
   }
 
   const created = await createExpenses(items);
+  schedulePhoneSummary();
   return NextResponse.json({ created, count: created.length }, { status: 201 });
 }

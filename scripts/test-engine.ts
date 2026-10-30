@@ -59,6 +59,27 @@ async function main() {
   deleteReceipt(receipt.id);
   assert.equal(db.select().from(expenses).where(eq(expenses.receiptId,receipt.id)).all().length,1);
   assert.ok(upcoming(todayDate().slice(0,7)).items.some(i=>i.status==="paid"));
+  const { scanInbox, writeInboxConfig } = await import("../src/lib/inbox");
+  const { writePhoneSummary } = await import("../src/lib/phone-summary");
+  const beforePhone=db.select().from(expenses).all().filter(item=>item.monthKey===todayDate().slice(0,7) && item.type==="expense").reduce((sum,item)=>sum+item.amount,0);
+  const phoneName="depense-test.expense.json";
+  const phoneDir=path.join(process.env.MAVIE_INBOX_DIR!,"A-traiter");
+  fs.mkdirSync(phoneDir,{recursive:true});
+  fs.writeFileSync(path.join(phoneDir,phoneName),JSON.stringify({kind:"expense",type:"expense",amount:12.34,description:"Café téléphone",category:"Restaurants",subcategory:"Café",person:"moi",accountName:"Carte principale",date:todayDate(),note:null,createdAt:new Date().toISOString()}));
+  await scanInbox();
+  await scanInbox();
+  assert.equal(db.select().from(expenses).all().filter(item=>item.source==="phone" && item.description==="Café téléphone").length,1);
+  await scanInbox();
+  assert.equal(db.select().from(expenses).all().filter(item=>item.source==="phone" && item.description==="Café téléphone").length,1);
+  assert.ok(fs.existsSync(path.join(process.env.MAVIE_INBOX_DIR!,"Traites",phoneName)));
+  writeInboxConfig();
+  const config=JSON.parse(fs.readFileSync(path.join(process.env.MAVIE_INBOX_DIR!,"config.json"),"utf8"));
+  assert.ok(config.categories.some((category:{name:string;subcategories:string[]})=>category.name==="Restaurants" && category.subcategories.includes("Café")));
+  writePhoneSummary();
+  const summary=JSON.parse(fs.readFileSync(path.join(testDir,"resume.json"),"utf8"));
+  assert.equal(summary.spent,Math.round((beforePhone + 12.34) * 100) / 100);
+  assert.equal(summary.recent[0].description,"Café téléphone");
+  assert.equal(summary.recent[0].source,"phone");
   console.log("Tests locaux OK : seed, échéances, idempotence, février, fréquences, normalisation, réglages, confirmation et suppression.");
 
   // Read .env.local without printing any value or passing secrets on a command line.
