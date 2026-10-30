@@ -17,6 +17,10 @@ export function DonutChart({
   const radius = 50;
   const stroke = 26;
   const circumference = 2 * Math.PI * radius;
+  // Début de chaque part, calculé d'avance (pas de variable modifiée pendant le rendu).
+  const offsets = slices.map((_, i) =>
+    slices.slice(0, i).reduce((sum, x) => sum + (x.value / total) * circumference, 0),
+  );
 
   return (
     <div className="donut-wrap">
@@ -31,7 +35,6 @@ export function DonutChart({
         />
         {slices.map((slice, index) => {
           const length = (slice.value / total) * circumference;
-          const offset = slices.slice(0, index).reduce((sum, prior) => sum + (prior.value / total) * circumference, 0);
           const el = (
             <circle
               key={slice.label}
@@ -42,7 +45,7 @@ export function DonutChart({
               stroke={slice.color}
               strokeWidth={stroke}
               strokeDasharray={`${Math.max(length - 1, 0)} ${circumference - Math.max(length - 1, 0)}`}
-              strokeDashoffset={-offset}
+              strokeDashoffset={-offsets[index]}
               transform="rotate(-90 70 70)"
             />
           );
@@ -81,18 +84,13 @@ function shortMonth(monthKey: string) {
 
 export function EvolutionChart({
   series,
-  // Les deux props restent acceptées pour préserver les appels existants.
+  categoryNames,
+  mode = "category",
 }: {
   series: EvolutionMonth[];
   categoryNames: string[];
   mode?: "category" | "total";
 }) {
-  const width = 640;
-  const height = 260;
-  const left = 58;
-  const right = 16;
-  const topMargin = 16;
-  const bottom = 42;
   const maxTotal = Math.max(...series.map((s) => s.total), 1);
   const step = niceStep(maxTotal / 4);
   const top = step * 4;
@@ -103,24 +101,75 @@ export function EvolutionChart({
     ? withData.reduce((sum, s) => sum + s.total, 0) / withData.length
     : 0;
 
-  const plotWidth = width - left - right;
-  const plotHeight = height - topMargin - bottom;
-  const x = (index: number) => left + (series.length <= 1 ? plotWidth / 2 : (index / (series.length - 1)) * plotWidth);
-  const y = (value: number) => topMargin + plotHeight - (value / top) * plotHeight;
-  const line = series.map((item, index) => `${x(index)},${y(item.total)}`).join(" ");
+  const colorMap = new Map<string, string>();
+  for (const month of series) {
+    for (const cat of month.byCategory) colorMap.set(cat.category, cat.color);
+  }
 
-  return <div className="evo chart-tooltip" aria-label="Évolution des dépenses sur six mois">
-    <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} role="img">
-      {ticks.map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} stroke="rgba(255,255,255,.08)" /><text x={left - 8} y={y(tick) + 4} textAnchor="end">{formatMoneyShort(tick)}</text></g>)}
-      {average > 0 && <g><line x1={left} x2={width - right} y1={y(average)} y2={y(average)} stroke="var(--warn)" strokeDasharray="4 4" /><text x={width - right} y={y(average) - 6} textAnchor="end">Moyenne {formatMoneyShort(average)}</text></g>}
-      <polyline points={line} fill="none" stroke="#3987e5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      {series.map((item, index) => <g key={item.monthKey}>
-        <circle cx={x(index)} cy={y(item.total)} r="5" fill="var(--sheet)" stroke="#3987e5" strokeWidth="3"><title>{`${shortMonth(item.monthKey)} : ${formatMoneyShort(item.total)}`}</title></circle>
-        <text x={x(index)} y={height - 12} textAnchor="middle">{shortMonth(item.monthKey)}</text>
-      </g>)}
-    </svg>
-    <span className="muted small">Survole un point pour voir le total du mois.</span>
-  </div>;
+  const order = [...categoryNames].sort((a, b) => {
+    const ta = series.reduce(
+      (s, m) => s + (m.byCategory.find((c) => c.category === a)?.total ?? 0),
+      0,
+    );
+    const tb = series.reduce(
+      (s, m) => s + (m.byCategory.find((c) => c.category === b)?.total ?? 0),
+      0,
+    );
+    return tb - ta;
+  });
+
+  return (
+    <div className="evo">
+      <div className="evo-y">
+        {ticks.map((t) => (
+          <span key={t}>{formatMoneyShort(t)}</span>
+        ))}
+      </div>
+      <div className="evo-plot">
+        <div className="evo-grid">
+          {ticks.map((t) => (
+            <i key={t} />
+          ))}
+        </div>
+        {average > 0 && (
+          <div className="evo-avg" style={{ bottom: `${(average / top) * 100}%` }}>
+            <span>Moyenne: {formatMoneyShort(average)}</span>
+          </div>
+        )}
+        <div className="evo-cols">
+          {series.map((month) => (
+            <div key={month.monthKey} className="evo-col">
+              <div className="evo-bar-area">
+                <div
+                  className="evo-stack"
+                  style={{ height: `${(month.total / top) * 100}%` }}
+                  title={`${shortMonth(month.monthKey)} : ${formatMoneyShort(month.total)}`}
+                >
+                  {mode === "total" ? (
+                    <span style={{ flexGrow: 1, background: "#3b82f6" }} />
+                  ) : (
+                    order.map((name) => {
+                      const v =
+                        month.byCategory.find((c) => c.category === name)?.total ?? 0;
+                      if (v <= 0) return null;
+                      return (
+                        <span
+                          key={name}
+                          title={`${name} : ${formatMoneyShort(v)}`}
+                          style={{ flexGrow: v, background: colorMap.get(name) }}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <span className="evo-label">{shortMonth(month.monthKey)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function SubcategoryBars({

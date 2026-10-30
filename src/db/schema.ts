@@ -17,6 +17,8 @@ export const categories = sqliteTable("categories", {
   slug: text("slug").notNull().unique(),
   color: text("color").notNull().default("#94a3b8"),
   kind: text("kind").notNull().default("essential"),
+  icon: text("icon"),
+  archived: integer("archived").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
@@ -66,6 +68,19 @@ export const recurring = sqliteTable("recurring", {
   startDate: text("start_date").notNull(), endDate: text("end_date"), active: integer("active").notNull().default(1), notes: text("notes"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+// Règles posées à la main dans le gestionnaire de catégories (« contient Esso → Transport »).
+export const keywordRules = sqliteTable("keyword_rules", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  keyword: text("keyword").notNull(),
+  categoryId: integer("category_id")
+    .notNull()
+    .references(() => categories.id),
+  subcategoryId: integer("subcategory_id").references(() => subcategories.id),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
 export const categoryRules = sqliteTable("category_rules", {
   id: integer("id").primaryKey({autoIncrement:true}), pattern: text("pattern").notNull(), merchantKey: text("merchant_key"),
   category: text("category").notNull(), subcategory: text("subcategory"), hits: integer("hits").notNull().default(1),

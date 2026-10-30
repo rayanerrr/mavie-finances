@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MonthPicker } from "@/components/MonthPicker";
-import { TransactionsTable, type TxRow } from "@/components/TransactionsTable";
+import { TransactionsLedger as TransactionsTable, type TxRow } from "@/components/TransactionsLedger";
 import { ConfirmDelete, Notice, useChoices, type Category } from "@/components/ui";
 import { currentMonthKey, formatMoney } from "@/lib/money";
 

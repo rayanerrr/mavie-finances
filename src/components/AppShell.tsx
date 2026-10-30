@@ -15,14 +15,12 @@ export function AppShell({
   return (
     <div className="shell">
       <Sidebar />
-      <a href="#contenu" className="skip-link">Aller au contenu</a>
-      <main className="main" id="contenu" tabIndex={-1}>
+      <main className="main">
         {title && (
           <header className="page-head">
             <div>
-              
+              {eyebrow && <p className="eyebrow">{eyebrow}</p>}
               <h1>{title}</h1>
-              {eyebrow && <p className="muted">{eyebrow}</p>}
             </div>
             {actions && <div className="page-actions">{actions}</div>}
           </header>
