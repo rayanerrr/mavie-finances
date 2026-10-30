@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Suivi des dépenses du foyer partagé",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr-CA">
       <body className="min-h-full">{children}</body>
