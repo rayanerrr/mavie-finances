@@ -3974,3 +3974,105 @@ table td { border-color: #eef2f7; }
 .kpi-value { font-size: clamp(18px, 1.6vw, 24px); white-space: nowrap; }
 .kpi-label { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scan-card .segmented button { white-space: nowrap; padding-inline: 10px; }
+
+/* =====================================================================
+   Résumé du mois (élément vedette de l'accueil) : frontend-design « un seul
+   point focal », signature « rail du mois ».
+   ===================================================================== */
+.ms {
+  background: var(--card);
+  border: 1px solid #e3eaf3;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(37, 99, 235, 0.06);
+  padding: 28px 32px 24px;
+  margin-bottom: 20px;
+}
+.ms-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+.ms-eyebrow { margin: 0 0 6px; color: var(--muted); font-size: 14px; font-weight: 500; }
+.ms-title { margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); text-wrap: balance; }
+.ms-amount { font-family: var(--font-mono), ui-monospace, monospace; font-size: 46px; font-weight: 600; letter-spacing: -0.03em; color: var(--blue); white-space: nowrap; }
+.ms-amount.over { color: var(--red); }
+.ms-sub { margin: 8px 0 0; color: var(--text-2); font-size: 15px; max-width: 60ch; text-wrap: pretty; }
+.ms-figures { display: flex; gap: 36px; margin: 0; }
+.ms-figures div { display: flex; flex-direction: column; gap: 4px; }
+.ms-figures dt { color: var(--muted); font-size: 13px; }
+.ms-figures dd { margin: 0; font-family: var(--font-mono), ui-monospace, monospace; font-size: 22px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.ms-figures dd.pos { color: var(--green); }
+.ms-figures small { display: block; font-family: var(--font-body), system-ui, sans-serif; font-size: 12px; font-weight: 400; color: var(--muted); }
+.ms-figures a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.ms-rail-wrap { margin-top: 24px; }
+.ms-rail { position: relative; height: 12px; border-radius: 999px; background: #e8eef6; }
+.ms-rail-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1); }
+.ms-rail-fill.ahead { background: linear-gradient(90deg, #fb923c, #dc2626); }
+.ms-rail-today { position: absolute; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--text); }
+.ms-rail-mark { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff; border: 2px solid #94a3b8; }
+.ms-rail-mark.paid { background: #94a3b8; }
+.ms-rail-mark.income { border-color: var(--green); }
+.ms-rail-mark.income.paid { background: var(--green); }
+.ms-rail-legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ms-today-label { color: var(--text-2); font-weight: 500; }
+.ms-pace { margin: 10px 0 0; font-size: 13px; }
+.ms-pace.ok { color: var(--text-2); }
+.ms-pace.warn { color: #b45309; font-weight: 500; }
+
+/* Les 4 tuiles passent au second plan : plus calmes, sans ombre. */
+.dash .kpis .kpi { box-shadow: none; border-color: #e6ecf3; padding: 16px 18px; }
+.dash .kpi-icon { width: 38px; height: 38px; border-radius: 10px; }
+.dash .kpi-value { font-size: clamp(17px, 1.4vw, 21px); }
+@media (prefers-reduced-motion: reduce) { .ms-rail-fill { transition: none; } }
+@media (max-width: 1280px) { .ms-figures { gap: 24px; } .ms-amount { font-size: 38px; } }
+
+/* Menu en sections */
+.side-nav { display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+.nav-section { display: flex; flex-direction: column; gap: 2px; }
+.nav-section-title { margin: 0 0 6px; padding: 0 12px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; color: #8492a6; }
+.nav-badge { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 11.5px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Focus visible sur les champs composés (web-design-guidelines : :focus-within) */
+.search:focus-within, .cm-inline-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+.tx-row:focus-visible { outline: 2px solid var(--color-ring); outline-offset: -2px; }
+
+/* Fenêtre de confirmation intégrée */
+.confirm-dialog {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  width: min(440px, calc(100% - 32px));
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+  overscroll-behavior: contain;
+}
+.confirm-dialog::backdrop { background: rgba(15, 23, 42, 0.35); }
+.confirm-dialog h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; text-wrap: balance; }
+.confirm-dialog p { margin: 0 0 20px; color: var(--text-2); line-height: 1.5; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.confirm-cancel, .confirm-ok { padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; border: 1px solid var(--line); background: #fff; color: var(--text); }
+.confirm-cancel:hover { background: #f1f5f9; }
+.confirm-ok { background: var(--blue); border-color: transparent; color: #fff; }
+.confirm-ok.danger { background: var(--red); }
+.confirm-ok:hover { filter: brightness(0.94); }
+
+/* Montants : Fira Sans à chiffres alignés plutôt que la police à chasse fixe
+   (évite les espaces trop larges ; frontend-design : pas de mono pour les données). */
+.kpi-value, .donut-center strong, .cm-card-amount, .cm-panel-stats strong, .rv-stats strong, .breakdown-total, .sx-kpi strong, .ms-amount, .ms-figures dd {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+.ms-amount { font-weight: 700; }
+
+/* Tuiles secondaires : icône au-dessus, étiquette en entier. */
+.dash .kpis .kpi { flex-direction: column; align-items: flex-start; gap: 10px; }
+.dash .kpi-icon { width: 34px; height: 34px; }
+.dash .kpi-label { white-space: normal; overflow: visible; }
+
+/* Menu plus compact */
+.side-nav { gap: 14px; }
+.nav-item { padding: 8px 12px; }
+.brand { padding-bottom: 14px; }
+
+/* Bouton de la carte « Ajouter un achat » : pleine largeur, flèche visible */
+.scan-status .btn-primary { width: 100%; justify-content: center; white-space: nowrap; }
+.scan-status .btn-primary { font-size: 13px; gap: 6px; padding-inline: 12px; }
+.scan-status .btn-primary svg { flex: none; }

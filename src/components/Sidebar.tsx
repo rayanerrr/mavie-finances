@@ -20,20 +20,36 @@ import {
   IconWallet,
 } from "@/components/icons";
 
-const NAV = [
-  { href: "/", label: "Tableau de bord", icon: IconHome },
-  { href: "/transactions", label: "Transactions", icon: IconList },
-  { href: "/ajouter", label: "Ajouter un achat", icon: IconPlusCircle },
-  { href: "/recus", label: "Reçus & scan", icon: IconReceipt },
-  { href: "/depenses-fixes", label: "Dépenses fixes", icon: IconCalendar },
-  { href: "/categories", label: "Catégories", icon: IconTag },
-  { href: "/sous-categories", label: "Sous-catégories", icon: IconBars },
-  { href: "/comptes", label: "Comptes", icon: IconWallet },
-  { href: "/budgets", label: "Budgets", icon: IconBudget },
-  { href: "/objectifs", label: "Objectifs", icon: IconFlag },
-  { href: "/analyses", label: "Analyses", icon: IconChart },
-  { href: "/rapports", label: "Rapports", icon: IconReport },
-  { href: "/parametres", label: "Paramètres", icon: IconSettings },
+// Menu regroupé par usage (ui-ux-pro-max « nav-hierarchy ») : on trouve vite où aller.
+const SECTIONS = [
+  {
+    title: "Au quotidien",
+    items: [
+      { href: "/", label: "Tableau de bord", icon: IconHome },
+      { href: "/transactions", label: "Transactions", icon: IconList },
+      { href: "/ajouter", label: "Ajouter un achat", icon: IconPlusCircle },
+      { href: "/recus", label: "Reçus & scan", icon: IconReceipt },
+      { href: "/depenses-fixes", label: "Dépenses fixes", icon: IconCalendar },
+    ],
+  },
+  {
+    title: "Planifier",
+    items: [
+      { href: "/budgets", label: "Budgets", icon: IconBudget },
+      { href: "/objectifs", label: "Objectifs", icon: IconFlag },
+      { href: "/analyses", label: "Analyses", icon: IconChart },
+      { href: "/rapports", label: "Rapports", icon: IconReport },
+    ],
+  },
+  {
+    title: "Organiser",
+    items: [
+      { href: "/categories", label: "Catégories", icon: IconTag },
+      { href: "/sous-categories", label: "Sous-catégories", icon: IconBars },
+      { href: "/comptes", label: "Comptes", icon: IconWallet },
+      { href: "/parametres", label: "Paramètres", icon: IconSettings },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -42,8 +58,12 @@ export function Sidebar() {
 
   useEffect(() => {
     const load = async () => {
-      const response = await fetch("/api/summary");
-      if (response.ok) setPendingReceipts((await response.json()).pendingReceipts ?? 0);
+      try {
+        const response = await fetch("/api/summary");
+        if (response.ok) setPendingReceipts((await response.json()).pendingReceipts ?? 0);
+      } catch {
+        /* serveur en redémarrage : on réessaie au prochain tour */
+      }
     };
     void load();
     const timer = setInterval(() => void load(), 20_000);
@@ -65,23 +85,32 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="side-nav">
-        {NAV.map((item) => {
-          const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${active ? "active" : ""}`}
-            >
-              <Icon size={17} />
-              <span>{item.label}</span>
-              {item.href === "/recus" && pendingReceipts > 0 && <small className="nav-badge">{pendingReceipts}</small>}
-            </Link>
-          );
-        })}
+      <nav className="side-nav" aria-label="Navigation principale">
+        {SECTIONS.map((section) => (
+          <div className="nav-section" key={section.title}>
+            <p className="nav-section-title">{section.title}</p>
+            {section.items.map((item) => {
+              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-item ${active ? "active" : ""}`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <Icon size={17} aria-hidden />
+                  <span>{item.label}</span>
+                  {item.href === "/recus" && pendingReceipts > 0 && (
+                    <small className="nav-badge" aria-label={`${pendingReceipts} reçu(s) à vérifier`}>
+                      {pendingReceipts}
+                    </small>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="side-footer">
