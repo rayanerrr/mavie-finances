@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
+import { THEME_BOOT_SCRIPT } from "@/components/ThemeToggle";
 
 // Polices de l'exemple de tableau de bord de ui-ux-pro-max (paire « Dashboard Data ») :
 // Fira Sans pour le texte, Fira Code pour les chiffres. next/font les intègre à la
@@ -27,7 +28,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${sans.variable} ${mono.variable} h-full antialiased`}>
+    <html lang="fr" className={`${sans.variable} ${mono.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Applique le mode clair/sombre avant l'affichage (pas de flash). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

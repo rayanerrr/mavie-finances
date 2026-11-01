@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -110,6 +111,8 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+
+      <ThemeToggle />
 
       <div className="side-footer">
         <span className="side-footer-icon">
