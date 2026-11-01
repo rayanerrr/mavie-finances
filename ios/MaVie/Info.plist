@@ -11,7 +11,7 @@
 <key>LSRequiresIPhoneOS</key><true/>
 <key>NSCameraUsageDescription</key><string>MaVie utilise la caméra pour photographier tes reçus.</string>
 <key>NSPhotoLibraryUsageDescription</key><string>MaVie utilise tes photos pour envoyer les reçus que tu choisis à ton Mac.</string>
-<key>UIUserInterfaceStyle</key><string>Dark</string>
+
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
 <key>UILaunchScreen</key><dict/>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>

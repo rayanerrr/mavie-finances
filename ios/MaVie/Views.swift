@@ -44,7 +44,7 @@ struct WelcomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 HStack(spacing: 16) {
-                    Image("Logo").resizable().scaledToFit().frame(width: 64, height: 64).accessibilityHidden(true)
+                    Image("Logo").resizable().scaledToFit().frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 16)).accessibilityHidden(true)
                     Text("MaVie").font(.largeTitle.weight(.bold))
                 }.padding(.top, 20)
                 VStack(alignment: .leading, spacing: 12) {
@@ -115,7 +115,7 @@ struct HomeView: View {
                             Text(household).font(.body).foregroundStyle(AppColors.ink2)
                         }
                         Spacer(minLength: 8)
-                        Image("Logo").resizable().scaledToFit().frame(width: 44, height: 44).accessibilityHidden(true)
+                        Image("Logo").resizable().scaledToFit().frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 11)).accessibilityHidden(true)
                     }
                     if let month = model.resume {
                         Button { model.screen = .month } label: {
@@ -278,7 +278,7 @@ struct ReviewView: View {
                     .navigationTitle(model.images.count > 1 ? "\(model.images.count) pages" : "Reçu").navigationBarTitleDisplayMode(.inline)
                     .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Fermer") { showingPhoto = false }.frame(minHeight: 44) } }
                     .toolbarBackground(AppColors.ledger, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
-            }.preferredColorScheme(.dark)
+            }
         }
     }
 }
@@ -318,6 +318,7 @@ private struct SentConfirmation: View {
 
 struct SettingsView: View {
     @ObservedObject var model: MaVieModel
+    @AppStorage("appearance") private var appearance = AppearanceMode.system.rawValue
     @State private var picker = false
     @State private var confirmClear = false
     private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0" }
@@ -328,12 +329,19 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     HStack(spacing: 16) {
-                        Image("Logo").resizable().scaledToFit().frame(width: 52, height: 52).accessibilityHidden(true)
+                        Image("Logo").resizable().scaledToFit().frame(width: 52, height: 52).clipShape(RoundedRectangle(cornerRadius: 13)).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 5) {
                             Text(model.config.householdName ?? "MaVie").font(.title2.weight(.semibold))
                             Text("Ton iPhone et ton Mac, reliés.").font(.subheadline).foregroundStyle(AppColors.ink3)
                         }
                     }.padding(.vertical, 8)
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionTitle(text: "Apparence")
+                        Picker("Mode d’affichage", selection: $appearance) {
+                            ForEach(AppearanceMode.allCases) { mode in Text(mode.label).tag(mode.rawValue) }
+                        }.pickerStyle(.segmented)
+                        Text("Auto suit le réglage de ton iPhone, comme l’app Mac.").font(.subheadline).foregroundStyle(AppColors.ink2)
+                    }.ledgerCard()
                     VStack(alignment: .leading, spacing: 16) {
                         SectionTitle(text: "Dossier partagé")
                         Label("iCloud Drive › \(folderName)", systemImage: "folder").font(.body.weight(.medium))
