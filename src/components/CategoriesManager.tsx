@@ -26,6 +26,7 @@ import {
 import { COLOR_CHOICES, ICON_CHOICES, type CategoryIconKey } from "@/lib/classify";
 import { currentMonthKey, formatMoney } from "@/lib/money";
 import { subcategoryIcon } from "@/lib/sub-icons";
+import { useConfirm } from "@/components/confirm";
 
 type Kind = "essential" | "discretionary" | "income";
 
@@ -199,6 +200,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
 }
 
 export function CategoriesManager() {
+  const confirm = useConfirm();
   const month = currentMonthKey();
   const [data, setData] = useState<Overview | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -345,7 +347,7 @@ export function CategoriesManager() {
       cat.txCount > 0 || cat.prevTotal > 0
         ? `Supprimer « ${cat.name} » ? Ses transactions seront déplacées dans « Autres ».`
         : `Supprimer « ${cat.name} » ?`;
-    if (!window.confirm(warning)) return;
+    if (!(await confirm({ title: `Supprimer « ${cat.name} » ?`, detail: warning.replace(/^Supprimer « .* » \? ?/, "") || undefined, confirmLabel: "Supprimer la catégorie" }))) return;
     const json = await send(`/api/categories/${cat.id}`, "DELETE");
     if (!json) return;
     setSelectedId(null);
@@ -357,7 +359,7 @@ export function CategoriesManager() {
     if (!selected || merging === "") return;
     const target = data?.categories.find((c) => c.id === merging);
     if (!target) return;
-    if (!window.confirm(`Fusionner « ${selected.name} » dans « ${target.name} » ? Cette action est définitive.`)) {
+    if (!(await confirm({ title: `Fusionner « ${selected.name} » dans « ${target.name} » ?`, detail: "Toutes ses transactions et sous-catégories seront déplacées. Cette action est définitive.", confirmLabel: "Fusionner" }))) {
       return;
     }
     const json = await send(`/api/categories/${selected.id}/merge`, "POST", { targetId: merging });
@@ -390,7 +392,7 @@ export function CategoriesManager() {
   }
 
   async function removeSub(id: number, name: string) {
-    if (!window.confirm(`Supprimer « ${name} » ? Ses transactions resteront dans la catégorie, sans sous-catégorie.`)) {
+    if (!(await confirm({ title: `Supprimer « ${name} » ?`, detail: "Ses transactions resteront dans la catégorie, sans sous-catégorie.", confirmLabel: "Supprimer" }))) {
       return;
     }
     if (await send(`/api/subcategories/${id}`, "DELETE")) await refresh();

@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MonthSummary } from "@/components/MonthSummary";
 import { DonutChart, EvolutionChart, SubcategoryBars } from "@/components/charts";
 import {
   IconArrowDown,
@@ -48,6 +49,7 @@ type InsightsPayload = {
   total: number;
   byCategory: CategoryTotal[];
   insights: {
+    incomeTotal?: number;
     previousMonthName: string;
     deltaPct: number | null;
     essential: number;
@@ -199,7 +201,15 @@ export function DashboardHome() {
           </div>
         </div>
 
-        {error && <p className="banner error">{error}</p>}
+        {error && <p className="banner error" role="alert">{error}</p>}
+
+        <MonthSummary month={month} spent={total} income={data?.insights.incomeTotal ?? 0}>
+          <div className="ms-top">
+            <MonthSummary.Headline />
+            <MonthSummary.Figures />
+          </div>
+          <MonthSummary.Rail />
+        </MonthSummary>
 
         <section className="kpis">
           <article className="card kpi">

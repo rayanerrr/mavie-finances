@@ -1,36 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  /* Système de design ui-ux-pro-max : « Dark Mode (OLED) » + palette fintech (bleu de confiance, vert positif). */
-  --color-background: #020617;
-  --color-card: #0e1223;
-  --color-muted: #1a1e2f;
-  --color-border: #1e293b;
-  --color-border-strong: #334155;
-  --color-foreground: #f8fafc;
-  --color-muted-foreground: #94a3b8;
-  --color-primary: #3b82f6;
-  --color-accent: #22c55e;
-  --color-on-accent: #04130a;
-  --color-destructive: #ef4444;
-  --color-ring: #93c5fd;
+  /* Thème clair inspiré de l'exemple de tableau de bord de ui-ux-pro-max (projects/healthcare-dashboard). */
+  --color-background: #f1f5f9;
+  --color-card: #ffffff;
+  --color-muted: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-foreground: #0f172a;
+  --color-muted-foreground: #526077;
+  --color-primary: #2563eb;
+  --color-cta: #2563eb;
+  --color-on-cta: #ffffff;
+  --color-accent: #15803d;
+  --color-on-accent: #ffffff;
+  --color-destructive: #dc2626;
+  --color-ring: #2563eb;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px rgba(15, 23, 42, 0.05);
+  --radius-card: 16px;
 
-  /* Jetons de l'interface, branchés sur le système de design. */
   --bg: var(--color-background);
-  --sidebar: #030a1c;
+  --sidebar: #ffffff;
   --card: var(--color-card);
   --card-2: var(--color-muted);
-  --input: #060b1a;
+  --input: #ffffff;
   --line: var(--color-border);
   --line-2: var(--color-border-strong);
   --text: var(--color-foreground);
-  --text-2: #cbd5e1;
+  --text-2: #334155;
   --muted: var(--color-muted-foreground);
   --blue: var(--color-primary);
-  --blue-2: #2563eb;
+  --blue-2: #1d4ed8;
   --green: var(--color-accent);
   --red: var(--color-destructive);
-  --radius: 10px;
+  --radius: 12px;
 }
 
 @theme inline {
@@ -142,13 +145,13 @@ a {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(15, 23, 42, 0.04);
 }
 
 .nav-item.active {
-  background: #1a2a45;
+  background: #eff6ff;
   color: #fff;
-  box-shadow: inset 0 0 0 1px #24375a;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
 }
 
 .nav-item.active svg {
@@ -281,7 +284,7 @@ a {
 }
 
 .banner.error {
-  color: #fecdd3;
+  color: #9f1239;
   border-color: rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.08);
 }
@@ -422,22 +425,22 @@ a {
 
 .kpi-icon.red {
   background: rgba(244, 63, 94, 0.16);
-  color: #fb7185;
+  color: #be123c;
 }
 
 .kpi-icon.blue {
   background: rgba(59, 130, 246, 0.18);
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .kpi-icon.purple {
   background: rgba(168, 85, 247, 0.18);
-  color: #c084fc;
+  color: #7e22ce;
 }
 
 .kpi-icon.green {
   background: rgba(34, 197, 94, 0.16);
-  color: #4ade80;
+  color: #15803d;
 }
 
 .kpi-label {
@@ -738,7 +741,7 @@ td {
 }
 
 tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(15, 23, 42, 0.02);
 }
 
 tbody tr:last-child td {
@@ -772,12 +775,12 @@ td.desc {
 }
 
 .amount-neg {
-  color: #f87171 !important;
+  color: #dc2626 !important;
   font-weight: 600;
 }
 
 .amount-pos {
-  color: #4ade80 !important;
+  color: #15803d !important;
   font-weight: 600;
 }
 
@@ -832,7 +835,7 @@ td.desc {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(15, 23, 42, 0.04);
   border: 1px solid var(--line);
   font-size: 11px;
   white-space: nowrap;
@@ -858,7 +861,7 @@ td.desc {
 }
 
 .segmented button.active {
-  background: #17325a;
+  background: #dbeafe;
   border-color: #2b4f86;
   color: #fff;
 }
@@ -869,7 +872,7 @@ td.desc {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  border: 1.5px dashed #33405a;
+  border: 1.5px dashed #cbd5e1;
   border-radius: 9px;
   background: var(--input);
   padding: 16px 12px 14px;
@@ -969,11 +972,11 @@ td.desc {
 }
 
 .ok-text {
-  color: #4ade80;
+  color: #15803d;
 }
 
 .pending-text {
-  color: #fbbf24;
+  color: #b45309;
 }
 
 .scan-badge {
@@ -999,7 +1002,7 @@ td.desc {
   height: 11px;
   border-radius: 50%;
   border: 2px solid rgba(251, 191, 36, 0.3);
-  border-top-color: #fbbf24;
+  border-top-color: #b45309;
   animation: spin 0.9s linear infinite;
 }
 
@@ -1211,7 +1214,7 @@ td.desc {
 .breakdown-track {
   height: 6px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
 
@@ -1269,17 +1272,17 @@ td.desc {
 
 .advice-icon.warn {
   background: rgba(244, 63, 94, 0.16);
-  color: #fb7185;
+  color: #be123c;
 }
 
 .advice-icon.info {
   background: rgba(249, 115, 22, 0.16);
-  color: #fb923c;
+  color: #c2410c;
 }
 
 .advice-icon.good {
   background: rgba(59, 130, 246, 0.18);
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .advice-text {
@@ -1329,7 +1332,7 @@ td.desc {
 .link {
   background: none;
   border: none;
-  color: #60a5fa;
+  color: #2563eb;
   cursor: pointer;
   padding: 0;
   font-size: 12px;
@@ -1497,7 +1500,7 @@ td.desc {
 .sub-bars-track {
   height: 7px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
 
@@ -1766,12 +1769,12 @@ td.desc {
 
 .cm-stat-icon.green {
   background: rgba(34, 197, 94, 0.16);
-  color: #4ade80;
+  color: #15803d;
 }
 
 .cm-stat-icon.blue {
   background: rgba(59, 130, 246, 0.18);
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .cm-stat-icon.purple {
@@ -1781,7 +1784,7 @@ td.desc {
 
 .cm-stat-icon.pink {
   background: rgba(236, 72, 153, 0.16);
-  color: #f472b6;
+  color: #be185d;
 }
 
 .cm-stat-split p {
@@ -1976,17 +1979,17 @@ td.desc {
 
 .cm-badge.essential {
   background: rgba(59, 130, 246, 0.18);
-  color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .cm-badge.discretionary {
   background: rgba(236, 72, 153, 0.18);
-  color: #f9a8d4;
+  color: #be185d;
 }
 
 .cm-badge.income {
   background: rgba(34, 197, 94, 0.18);
-  color: #86efac;
+  color: #15803d;
 }
 
 .cm-more-wrap {
@@ -2049,7 +2052,7 @@ td.desc {
 }
 
 .cm-menu button.danger {
-  color: #fb7185;
+  color: #be123c;
 }
 
 .cm-card-amount {
@@ -2092,7 +2095,7 @@ td.desc {
 }
 
 .cm-delta.bad {
-  color: #fb7185;
+  color: #be123c;
 }
 
 .cm-delta.flat {
@@ -2252,7 +2255,7 @@ td.desc {
 }
 
 .cm-tabs button.active b {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(15, 23, 42, 0.25);
 }
 
 .cm-panel-stats {
@@ -2335,7 +2338,7 @@ td.desc {
 .cm-btn.primary.soft {
   background: rgba(37, 99, 235, 0.16);
   border-color: rgba(59, 130, 246, 0.45);
-  color: #93c5fd;
+  color: #1d4ed8;
   font-size: 11.5px;
   padding: 5px 9px;
 }
@@ -2343,7 +2346,7 @@ td.desc {
 .cm-btn.danger {
   background: rgba(244, 63, 94, 0.14);
   border-color: rgba(244, 63, 94, 0.45);
-  color: #fb7185;
+  color: #be123c;
 }
 
 .cm-subs {
@@ -2708,7 +2711,7 @@ td.desc {
 }
 
 .cm-menu button.active {
-  color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .sx-tabs {
@@ -2807,12 +2810,12 @@ td.desc {
 
 .sx-kpi-icon.blue {
   background: rgba(59, 130, 246, 0.18);
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .sx-kpi-icon.pink {
   background: rgba(244, 63, 94, 0.16);
-  color: #fb7185;
+  color: #be123c;
 }
 
 .sx-kpi-icon.indigo {
@@ -2836,7 +2839,7 @@ td.desc {
 }
 
 .sx-delta.bad {
-  color: #fb7185;
+  color: #be123c;
 }
 
 .sx-delta.flat {
@@ -2961,7 +2964,7 @@ td.desc {
   display: inline-grid;
   place-items: center;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.06);
   border: 1px solid var(--line);
   flex-shrink: 0;
   line-height: 1;
@@ -3128,7 +3131,7 @@ td.desc {
 .sx-auto {
   font-size: 11px;
   font-weight: 600;
-  color: #c4b5fd;
+  color: #6d28d9;
   background: rgba(139, 92, 246, 0.2);
   border-radius: 6px;
   padding: 2px 8px;
@@ -3172,22 +3175,22 @@ td.desc {
 
 .sx-ins-icon.bad {
   background: rgba(244, 63, 94, 0.18);
-  color: #fb7185;
+  color: #be123c;
 }
 
 .sx-ins-icon.good {
   background: rgba(34, 197, 94, 0.18);
-  color: #4ade80;
+  color: #15803d;
 }
 
 .sx-ins-icon.tip {
   background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
+  color: #b45309;
 }
 
 .sx-ins-icon.info {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .sx-ins-text {
@@ -3506,7 +3509,7 @@ td.desc {
 .settings-section ol { padding-left: 20px; color: var(--text-2); font-size: 13px; line-height: 1.8; }
 
 .tx-row { cursor: pointer; }
-.tx-row:hover { background: rgba(255, 255, 255, 0.025); }
+.tx-row:hover { background: rgba(15, 23, 42, 0.025); }
 .drawer-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; justify-content: flex-end; background: rgba(0, 0, 0, 0.48); }
 .edit-drawer { width: min(480px, 100%); height: 100%; overflow: auto; padding: 20px; background: var(--card); border-left: 1px solid var(--line); }
 .edit-drawer .quick-form { margin: 18px 0; }
@@ -3707,9 +3710,9 @@ td.desc {
   text-decoration: none;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
-.btn-ghost:hover{ background: var(--card-2); border-color: #34415a; }
+.btn-ghost:hover{ background: var(--card-2); border-color: #94a3b8; }
 .btn-ghost:disabled{ opacity: 0.5; cursor: default; }
-.btn-ghost.danger{ color: #fda4af; }
+.btn-ghost.danger{ color: #be123c; }
 .btn-ghost.danger:hover{ border-color: rgba(244, 63, 94, 0.5); background: rgba(244, 63, 94, 0.08); }
 /* ---------- Vérification d'un reçu ---------- */
 .rv-empty{ padding: 28px; color: var(--muted); }
@@ -3751,10 +3754,10 @@ td.desc {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 .rv-status{ font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--card-2); color: var(--text-2); }
-.rv-status.ok{ background: rgba(34, 197, 94, 0.14); color: #86efac; }
-.rv-status.warn{ background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
-.rv-status.info{ background: rgba(59, 130, 246, 0.16); color: #93c5fd; }
-.rv-status.bad{ background: rgba(244, 63, 94, 0.14); color: #fda4af; }
+.rv-status.ok{ background: rgba(34, 197, 94, 0.14); color: #15803d; }
+.rv-status.warn{ background: rgba(245, 158, 11, 0.14); color: #b45309; }
+.rv-status.info{ background: rgba(59, 130, 246, 0.16); color: #1d4ed8; }
+.rv-status.bad{ background: rgba(244, 63, 94, 0.14); color: #be123c; }
 .rv-reading{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--text-2); }
 .rv-reading.bad{ border-color: rgba(244, 63, 94, 0.4); }
 .rv-stats{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -3762,15 +3765,15 @@ td.desc {
 .rv-stats span{ font-size: 12px; color: var(--muted); }
 .rv-stats strong{ font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rv-stats em{ font-style: normal; font-size: 11.5px; color: var(--muted); }
-.rv-stats .good strong,.rv-stats .good em{ color: #86efac; }
-.rv-stats .warn strong,.rv-stats .warn em{ color: #fcd34d; }
+.rv-stats .good strong,.rv-stats .good em{ color: #15803d; }
+.rv-stats .warn strong,.rv-stats .warn em{ color: #b45309; }
 .rv-table{ width: 100%; border-collapse: collapse; }
 .rv-table th{ text-align: left; font-size: 11.5px; font-weight: 500; color: var(--muted); padding: 0 8px 8px; }
 .rv-table td{ padding: 7px 8px; border-top: 1px solid var(--line); vertical-align: top; }
 .rv-table td:first-child{ width: 28px; padding-top: 14px; }
 .rv-table input[type="checkbox"]{ width: 16px; height: 16px; accent-color: var(--blue); }
 .rv-table small{ display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
-.rv-table small b{ color: #fcd34d; font-weight: 600; }
+.rv-table small b{ color: #b45309; font-weight: 600; }
 .rv-table tr.off td{ opacity: 0.45; }
 .rv-table tr.doubt td:nth-child(2) .rv-desc{ border-color: rgba(245, 158, 11, 0.55); }
 .rv-qty{ width: 44px; padding-top: 14px !important; color: var(--text-2); text-align: center; font-variant-numeric: tabular-nums; }
@@ -3809,10 +3812,10 @@ td.desc {
 .fx-dot{ grid-row: 1 / 3; width: 9px; height: 9px; border-radius: 50%; }
 .fx-name{ font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fx-amount{ text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 13px; }
-.fx-amount.pos,.fx-value.pos{ color: #4ade80; }
+.fx-amount.pos,.fx-value.pos{ color: #15803d; }
 .fx-state{ grid-column: 3 / 5; font-size: 11px; font-weight: 600; }
-.fx-state.paid{ color: #86efac; }
-.fx-state.upcoming{ color: #93c5fd; }
+.fx-state.paid{ color: #15803d; }
+.fx-state.upcoming{ color: #1d4ed8; }
 .fx-empty,.fx-start p{ color: var(--muted); margin: 12px 0 0; }
 .fx-group + .fx-group{ margin-top: 14px; }
 .fx-group h3{ margin: 6px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
@@ -3868,12 +3871,12 @@ a, button, .cm-card, .chip, .nav-item, .tx-row, input, select, textarea {
 button:active:not(:disabled), .btn-primary:active, .chip:active { transform: scale(0.98); }
 /* Une seule action principale par écran, en vert (accent / CTA). */
 .btn-primary, .btn.primary {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-cta);
+  color: var(--color-on-cta);
   border-color: transparent;
   font-weight: 600;
 }
-.btn-primary:hover:not(:disabled), .btn.primary:hover:not(:disabled) { background: #4ade80; color: var(--color-on-accent); }
+.btn-primary:hover:not(:disabled), .btn.primary:hover:not(:disabled) { background: #1d4ed8; color: #fff; }
 .btn-primary:disabled, .btn.primary:disabled { opacity: 0.55; }
 .icon-text { display: inline-flex; align-items: center; gap: 6px; }
 @media (prefers-reduced-motion: reduce) {
@@ -3895,9 +3898,181 @@ button:active:not(:disabled), .btn-primary:active, .chip:active { transform: sca
 
 /* Action principale : même vert partout (règle « primary-action » ; la variante « soft » reste secondaire). */
 .cm-btn.primary:not(.soft), .sx-add {
-  background: var(--color-accent);
+  background: var(--color-cta);
   border-color: transparent;
-  color: var(--color-on-accent);
+  color: var(--color-on-cta);
   font-weight: 600;
 }
-.cm-btn.primary:not(.soft):hover:not(:disabled), .sx-add:hover { background: #4ade80; color: var(--color-on-accent); }
+.cm-btn.primary:not(.soft):hover:not(:disabled), .sx-add:hover { background: #1d4ed8; color: #fff; }
+
+/* =====================================================================
+   Style « tableau de bord clair » d'après l'exemple de ui-ux-pro-max
+   (projects/healthcare-dashboard) : cartes blanches 16 px, ombres douces,
+   beaucoup d'air, chiffres en Fira Code, menu blanc à pastille bleue.
+   ===================================================================== */
+body { background: var(--bg); color: var(--text); font-family: var(--font-body), system-ui, sans-serif; }
+
+/* Mise en page aérée */
+.main { padding: 28px 32px 40px; }
+.kpis, .dash-grid, .cm-stats, .cm-grid { gap: 20px !important; }
+
+/* Cartes */
+.card, .panel, .cm-card, .cm-create, .cm-stat, .sx-card, .scan-card, .kpis .kpi {
+  background: var(--card);
+  border: 1px solid #e8eef5;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.card, .panel { padding: 22px 24px; }
+.cm-card { padding: 20px; }
+.card-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+
+/* Chiffres clés : icône pastel, gros chiffre en Fira Code */
+.kpis .kpi { padding: 22px 24px; gap: 16px; align-items: center; }
+.kpi-icon { width: 48px; height: 48px; border-radius: 12px; }
+.kpi-value, .donut-center strong, .cm-card-amount, .cm-panel-stats strong, .rv-stats strong, .breakdown-total, .sx-kpi strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.kpi-value { font-size: 28px; color: var(--text); }
+.kpi-label, .kpi-sub { color: var(--muted); }
+
+/* Menu latéral blanc */
+.sidebar { background: #fff; border-right: 1px solid var(--line); padding: 22px 16px 18px; }
+.brand strong { color: var(--blue); font-size: 19px; }
+.brand-mark { border-radius: 10px; }
+.nav-item { color: #475569; font-size: 14px; padding: 10px 12px; border-radius: 10px; }
+.nav-item svg { color: #64748b; }
+.nav-item:hover { background: #f1f5f9; color: var(--text); }
+.nav-item.active { background: #eff6ff; color: var(--blue); box-shadow: none; font-weight: 600; }
+.nav-item.active svg { color: var(--blue); }
+.side-footer { border-top: 1px solid var(--line); }
+
+/* Champs et listes */
+.search, input, select, textarea, .mini-select {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--text);
+}
+.search { border-radius: 12px; height: 46px; }
+input::placeholder, textarea::placeholder { color: #8a96a8; }
+table th { color: var(--muted); font-weight: 500; }
+table td { border-color: #eef2f7; }
+
+/* Boutons et onglets */
+.btn-primary, .btn.primary, .cm-btn.primary:not(.soft), .sx-add { border-radius: 10px; box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25); }
+.segmented button.active, .sx-tabs button.active, .cm-tabs button.active { background: var(--blue); color: #fff; }
+
+/* Pastilles de catégorie lisibles sur fond blanc */
+.cat-chip-label { color: var(--text-2); }
+
+/* Chiffres clés : rester dans la carte avec Fira Code (plus large). */
+.kpis .kpi { padding: 18px 20px; gap: 14px; min-width: 0; }
+.kpis .kpi > div { min-width: 0; }
+.kpi-icon { width: 44px; height: 44px; }
+.kpi-value { font-size: clamp(18px, 1.6vw, 24px); white-space: nowrap; }
+.kpi-label { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scan-card .segmented button { white-space: nowrap; padding-inline: 10px; }
+
+/* =====================================================================
+   Résumé du mois (élément vedette de l'accueil) : frontend-design « un seul
+   point focal », signature « rail du mois ».
+   ===================================================================== */
+.ms {
+  background: var(--card);
+  border: 1px solid #e3eaf3;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(37, 99, 235, 0.06);
+  padding: 28px 32px 24px;
+  margin-bottom: 20px;
+}
+.ms-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+.ms-eyebrow { margin: 0 0 6px; color: var(--muted); font-size: 14px; font-weight: 500; }
+.ms-title { margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); text-wrap: balance; }
+.ms-amount { font-family: var(--font-mono), ui-monospace, monospace; font-size: 46px; font-weight: 600; letter-spacing: -0.03em; color: var(--blue); white-space: nowrap; }
+.ms-amount.over { color: var(--red); }
+.ms-sub { margin: 8px 0 0; color: var(--text-2); font-size: 15px; max-width: 60ch; text-wrap: pretty; }
+.ms-figures { display: flex; gap: 36px; margin: 0; }
+.ms-figures div { display: flex; flex-direction: column; gap: 4px; }
+.ms-figures dt { color: var(--muted); font-size: 13px; }
+.ms-figures dd { margin: 0; font-family: var(--font-mono), ui-monospace, monospace; font-size: 22px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.ms-figures dd.pos { color: var(--green); }
+.ms-figures small { display: block; font-family: var(--font-body), system-ui, sans-serif; font-size: 12px; font-weight: 400; color: var(--muted); }
+.ms-figures a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.ms-rail-wrap { margin-top: 24px; }
+.ms-rail { position: relative; height: 12px; border-radius: 999px; background: #e8eef6; }
+.ms-rail-fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #60a5fa, #2563eb); transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1); }
+.ms-rail-fill.ahead { background: linear-gradient(90deg, #fb923c, #dc2626); }
+.ms-rail-today { position: absolute; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--text); }
+.ms-rail-mark { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff; border: 2px solid #94a3b8; }
+.ms-rail-mark.paid { background: #94a3b8; }
+.ms-rail-mark.income { border-color: var(--green); }
+.ms-rail-mark.income.paid { background: var(--green); }
+.ms-rail-legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ms-today-label { color: var(--text-2); font-weight: 500; }
+.ms-pace { margin: 10px 0 0; font-size: 13px; }
+.ms-pace.ok { color: var(--text-2); }
+.ms-pace.warn { color: #b45309; font-weight: 500; }
+
+/* Les 4 tuiles passent au second plan : plus calmes, sans ombre. */
+.dash .kpis .kpi { box-shadow: none; border-color: #e6ecf3; padding: 16px 18px; }
+.dash .kpi-icon { width: 38px; height: 38px; border-radius: 10px; }
+.dash .kpi-value { font-size: clamp(17px, 1.4vw, 21px); }
+@media (prefers-reduced-motion: reduce) { .ms-rail-fill { transition: none; } }
+@media (max-width: 1280px) { .ms-figures { gap: 24px; } .ms-amount { font-size: 38px; } }
+
+/* Menu en sections */
+.side-nav { display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+.nav-section { display: flex; flex-direction: column; gap: 2px; }
+.nav-section-title { margin: 0 0 6px; padding: 0 12px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; color: #8492a6; }
+.nav-badge { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 11.5px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Focus visible sur les champs composés (web-design-guidelines : :focus-within) */
+.search:focus-within, .cm-inline-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+.tx-row:focus-visible { outline: 2px solid var(--color-ring); outline-offset: -2px; }
+
+/* Fenêtre de confirmation intégrée */
+.confirm-dialog {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  width: min(440px, calc(100% - 32px));
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+  overscroll-behavior: contain;
+}
+.confirm-dialog::backdrop { background: rgba(15, 23, 42, 0.35); }
+.confirm-dialog h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; text-wrap: balance; }
+.confirm-dialog p { margin: 0 0 20px; color: var(--text-2); line-height: 1.5; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.confirm-cancel, .confirm-ok { padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; border: 1px solid var(--line); background: #fff; color: var(--text); }
+.confirm-cancel:hover { background: #f1f5f9; }
+.confirm-ok { background: var(--blue); border-color: transparent; color: #fff; }
+.confirm-ok.danger { background: var(--red); }
+.confirm-ok:hover { filter: brightness(0.94); }
+
+/* Montants : Fira Sans à chiffres alignés plutôt que la police à chasse fixe
+   (évite les espaces trop larges ; frontend-design : pas de mono pour les données). */
+.kpi-value, .donut-center strong, .cm-card-amount, .cm-panel-stats strong, .rv-stats strong, .breakdown-total, .sx-kpi strong, .ms-amount, .ms-figures dd {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+.ms-amount { font-weight: 700; }
+
+/* Tuiles secondaires : icône au-dessus, étiquette en entier. */
+.dash .kpis .kpi { flex-direction: column; align-items: flex-start; gap: 10px; }
+.dash .kpi-icon { width: 34px; height: 34px; }
+.dash .kpi-label { white-space: normal; overflow: visible; }
+
+/* Menu plus compact */
+.side-nav { gap: 14px; }
+.nav-item { padding: 8px 12px; }
+.brand { padding-bottom: 14px; }
+
+/* Bouton de la carte « Ajouter un achat » : pleine largeur, flèche visible */
+.scan-status .btn-primary { width: 100%; justify-content: center; white-space: nowrap; }
+.scan-status .btn-primary { font-size: 13px; gap: 6px; padding-inline: 12px; }
+.scan-status .btn-primary svg { flex: none; }

@@ -57,7 +57,7 @@ export function TransactionsTable({ rows, onSelect }: { rows: TxRow[]; onSelect?
           {rows.map((tx) => {
             const income = tx.type === "income";
             return (
-              <tr key={tx.id} onClick={() => onSelect?.(tx)} className={onSelect ? "tx-row" : undefined}>
+              <tr key={tx.id} onClick={() => onSelect?.(tx)} className={onSelect ? "tx-row" : undefined} tabIndex={onSelect ? 0 : undefined} onKeyDown={onSelect ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(tx); } } : undefined}>
                 <td className="check">
                   <input type="checkbox" aria-label={`Sélectionner ${tx.description}`} />
                 </td>

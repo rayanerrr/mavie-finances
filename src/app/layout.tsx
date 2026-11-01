@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
 
-// Police « Financial Trust » recommandée par ui-ux-pro-max pour la finance.
-// next/font l'intègre à la construction : elle marche hors ligne.
-const plex = IBM_Plex_Sans({
+// Polices de l'exemple de tableau de bord de ui-ux-pro-max (paire « Dashboard Data ») :
+// Fira Sans pour le texte, Fira Code pour les chiffres. next/font les intègre à la
+// construction : elles marchent hors ligne.
+const sans = Fira_Sans({
   variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+const mono = Fira_Code({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 // Données locales qui changent sans arrêt : jamais de page pré-rendue ni de cache
@@ -21,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${plex.variable} h-full antialiased`}>
+    <html lang="fr" className={`${sans.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

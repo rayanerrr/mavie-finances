@@ -48,6 +48,7 @@ import {
 } from "@/components/subcategory-panels";
 import { formatMoney, monthName, monthTitle, nextMonthKey, previousMonthKey } from "@/lib/money";
 import { subcategoryIcon } from "@/lib/sub-icons";
+import { useConfirm } from "@/components/confirm";
 import { formatQuantity, formatUnitPrice } from "@/lib/units";
 
 type Tab = "overview" | "subs" | "products" | "merchants" | "people" | "hours" | "trend" | "compare";
@@ -118,6 +119,7 @@ export function SubcategoryExplorer({
   initialCategoryId: number | null;
   initialMonth: string;
 }) {
+  const confirm = useConfirm();
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(initialCategoryId);
   const [month, setMonth] = useState(initialMonth);
@@ -206,7 +208,7 @@ export function SubcategoryExplorer({
   }
 
   async function removeSub(id: number, name: string) {
-    if (!window.confirm(`Supprimer « ${name} » ? Ses achats resteront dans la catégorie, sans sous-catégorie.`)) return;
+    if (!(await confirm({ title: `Supprimer « ${name} » ?`, detail: "Ses achats resteront dans la catégorie, sans sous-catégorie.", confirmLabel: "Supprimer" }))) return;
     if (await send(`/api/subcategories/${id}`, "DELETE")) {
       await load();
       flash(`« ${name} » supprimée.`);
