@@ -1,93 +1,68 @@
-# MaVie · Finances foyer
+<div align="center">
 
-App locale (Mac) — un seul budget partagé. UI type mockup MaVie, OCR via Cursor.
+<img src="public/logo.svg" width="96" alt="Logo TWR" />
 
-## Démarrer
+# MaVie
+
+**Les finances du foyer, sur ton Mac et ton iPhone.**
+Prends un reçu en photo, l'IA lit chaque article et le range dans la bonne catégorie.
+
+![macOS](https://img.shields.io/badge/macOS-12%2B-0f172a) ![iOS](https://img.shields.io/badge/iOS-17%2B-2563eb) ![Next.js](https://img.shields.io/badge/Next.js-16-0f172a) ![Electron](https://img.shields.io/badge/Electron-43-2563eb)
+
+</div>
+
+<p align="center"><img src="docs/screenshots/mac-accueil.png" alt="Accueil de MaVie sur Mac" width="900" /></p>
+
+## Ce que fait MaVie
+
+- **Reçus lus par l'IA** : chaque article est classé (Viande, Légumes, Essence…), puis tu vérifies et confirmes.
+- **iPhone → Mac via iCloud** : tu prends la photo sur le téléphone, le Mac la lit tout seul.
+- **Dépenses sans reçu** : « 20 $ d'essence » en deux touches.
+- **Dépenses fixes** : loyer, salaire et abonnements s'ajoutent tout seuls à leur date.
+- **Résumé du mois** : ce qu'il te reste, ton rythme de dépense, les prochaines échéances.
+- **Catégories, sous-catégories, budgets, objectifs, analyses, rapports CSV.**
+- **Mode clair, sombre ou automatique**, sur Mac comme sur iPhone.
+- **Tes données restent sur ton Mac.**
+
+## Sur Mac
+
+| Clair | Sombre |
+|---|---|
+| <img src="docs/screenshots/mac-accueil.png" alt="Accueil en mode clair" /> | <img src="docs/screenshots/mac-accueil-sombre.png" alt="Accueil en mode sombre" /> |
+| <img src="docs/screenshots/mac-categories.png" alt="Gestion des catégories" /> | <img src="docs/screenshots/mac-depenses-fixes.png" alt="Ajout d'une dépense fixe" /> |
+
+## Sur iPhone
+
+<p align="center">
+  <img src="docs/screenshots/iphone-clair.png" alt="App iPhone en mode clair" width="280" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/iphone-sombre.png" alt="App iPhone en mode sombre" width="280" />
+</p>
+
+Trois onglets : **Mon mois** (le suivi), **Ajouter** (photo ou saisie rapide) et **Envois** (ce que le Mac a lu).
+
+## Comment ça marche
+
+```
+iPhone ──photo──▶ iCloud Drive/MaVie ──▶ Mac (MaVie) ──▶ IA (gpt-reserve, Gemini en secours)
+   ▲                                          │
+   └──────── résumé du mois ◀─────────────────┘
+```
+
+## Installer
+
+**Mac** : ouvre `MaVie-1.0.0-arm64.dmg` et glisse MaVie dans Applications. Au premier lancement, fais clic droit puis Ouvrir (l'app n'est pas notariée).
+
+**iPhone** : ouvre `ios/` dans Xcode, choisis ton Apple ID, puis Run. Avec un compte gratuit, l'app est à réinstaller tous les 7 jours (détails dans `ios/README.md`).
+
+## Développement
 
 ```bash
 npm install
-npm run db:seed
-npm run db:demo   # optionnel : 6 mois de données de démonstration
-npm run dev
+npm run dev                                    # http://localhost:3000
+bash scripts/build-mac.sh                      # construit le .dmg
+cd ios && bash build-ipa.sh                    # construit le .ipa
 ```
 
-Repartir de zéro :
-
-```bash
-rm -f data/finances.db data/finances.db-wal data/finances.db-shm
-find data/receipts -type f ! -name .gitkeep -delete
-npm run db:seed
-```
-
-Import en lot : `npm run db:import -- fichier.json` (tableau d’objets `{date, amount, description, store, person, category, subcategory}`).
-
-Ouvre [http://localhost:3000](http://localhost:3000).
-
-## Ajouter un reçu (OCR Cursor)
-
-1. Dans **Ajouter un achat**, dépose une photo/PDF → statut `pending`.
-2. Dans Cursor : *« analyse le reçu #ID »* (l’agent lit le fichier et appelle `POST /api/receipts/ID/analyze`).
-3. Dans MaVie : vérifie les items → **Confirmer l’import**.
-
-### Analyze (Cursor)
-
-```bash
-curl -X POST http://localhost:3000/api/receipts/1/analyze \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "store":"Maxi",
-    "items":[
-      {"description":"Boeuf haché 500g","amount":9.99,"category":"Alimentation","subcategory":"Viande"},
-      {"description":"Poitrine de poulet","amount":12.45,"category":"Alimentation","subcategory":"Poulet"}
-    ]
-  }'
-```
-
-## App Mac
-
-MaVie s’emballe en application macOS Apple Silicon (arm64), à partir de macOS 12.
-La construction nécessite un Mac arm64, Node.js/npm et les outils de ligne de
-commande Xcode (`xcode-select --install`).
-
-```bash
-npm install
-# Dans un premier terminal : npm run dev
-npm run desktop:dev
-# MAVIE_URL permet de choisir un autre serveur Next local déjà lancé.
-
-npm run desktop:build
-# Ou copier le résultat après construction :
-bash scripts/build-mac.sh --copy-to ~/Documents/Telechargements
-
-codesign --verify --deep --strict /tmp/mavie-build/dist/mac-arm64/MaVie.app
-npm run desktop:smoke -- /tmp/mavie-build/dist/mac-arm64/MaVie.app /tmp/mavie-smoke
-```
-
-Le script copie le dépôt dans `/tmp/mavie-build`, installe les dépendances,
-construit Next en standalone puis recompile SQLite **uniquement dans la copie
-standalone** pour Electron. Le module SQLite du projet reste utilisable par
-Node et `npm run dev`. `MAVIE_SRC` et `MAVIE_BUILD_DIR` permettent de changer les
-chemins ; le dossier de construction doit être séparé, vide au premier usage,
-et hors de Documents/iCloud. Un marqueur permet de le réutiliser ensuite.
-Les fichiers `.env*`, les données, `ios/` et les anciens livrables ne sont pas
-copiés depuis le dépôt. Aucune clé API n’est incorporée au DMG.
-
-Le livrable est `/tmp/mavie-build/dist/MaVie-1.0.0-arm64.dmg`. Glisse MaVie dans
-Applications depuis le DMG. La signature est ad hoc, sans notarisation Apple ;
-une ouverture par clic droit → Ouvrir peut être nécessaire.
-
-Le serveur écoute uniquement sur `127.0.0.1`, sur un port libre. Les données et
-les journaux sont dans `~/Library/Application Support/MaVie` ; le menu MaVie
-ouvre ce dossier et `~/Library/Mobile Documents/com~apple~CloudDocs/MaVie`.
-Les journaux tournent entre `logs/main.log` et `logs/main.log.1` (environ 1 Mo
-chacun). Le serveur dispose de trois relances au maximum par session.
-La branche historique écrit encore la base dans le sous-dossier `data/` ;
-après fusion du moteur, `FINANCES_DATA_DIR` désigne directement le dossier
-utilisateur. Une base historique existante devra être migrée avant ce changement.
-
-Le test de fumée lance une fenêtre cachée et utilise une **nouvelle base
-temporaire**, conservée pour inspection. Il vérifie SQLite sous Electron,
-capture les huit pages et écrit leurs statuts HTTP et erreurs console dans un
-rapport JSON horodaté. L’accueil doit répondre 200 ; les pages encore absentes
-sur une branche peuvent répondre 404. Les notifications iCloud et le badge du
-Dock attendent les API du moteur ; une route absente n’empêche pas le démarrage.
+Stack : Next.js 16, React 19, SQLite (Drizzle), Electron, SwiftUI.
+Système de design : `design-system/mavie/MASTER.md`.
