@@ -25,7 +25,7 @@ export function DonutChart({
           cy="70"
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.05)"
+          stroke="rgba(15,23,42,0.06)"
           strokeWidth={stroke}
         />
         {slices.map((slice, index) => {
