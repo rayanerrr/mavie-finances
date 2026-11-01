@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 import { formatMoneyShort } from "@/lib/money";
 
 export function SoftError({ message, href = "/parametres" }: { message: string; href?: string }) {
-  return <div className="notice" role="alert"><span>⚠ {message}</span><Link className="btn" href={href}>Voir Paramètres</Link></div>;
+  return <div className="notice" role="alert"><span className="icon-text"><TriangleAlert size={15} aria-hidden /> {message}</span><Link className="btn" href={href}>Voir Paramètres</Link></div>;
 }
 
 export function StateLabel({ state }: { state: "ok" | "warn" | "over"; }) {
-  const content = state === "ok" ? "✓ Bien" : state === "warn" ? "! Attention" : "! Dépassé";
-  return <span className={`state-label state-${state}`} aria-label={content}>{content}</span>;
+  const content = state === "ok" ? "Bien" : state === "warn" ? "Attention" : "Dépassé";
+  const Icon = state === "ok" ? CircleCheck : TriangleAlert;
+  return <span className={`state-label state-${state} icon-text`}><Icon size={14} aria-hidden />{content}</span>;
 }
 
 export type RailItem = { date: string; name: string; amount: number; status?: "paid" | "upcoming"; paid?: boolean };

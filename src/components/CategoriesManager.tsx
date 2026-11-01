@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect -- chargement des données au montage */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, createElement } from "react";
 import {
   CategoryIcon,
   IconArchive,
@@ -448,13 +448,13 @@ export function CategoriesManager() {
   }
 
   function renderSubRow(sub: Detail["subcategories"][number], showShare: boolean) {
-    const emoji = subcategoryIcon(sub.name);
+    const SubGlyph = subcategoryIcon(sub.name);
     const share = categoryTotal > 0 ? Math.round((sub.total / categoryTotal) * 100) : 0;
     const isRenaming = subRename?.id === sub.id;
     return (
       <li key={sub.id} className="cm-sub">
         <span className="cm-sub-icon">
-          {emoji ?? <b style={{ color: selected?.color }}>{sub.name.charAt(0)}</b>}
+          {SubGlyph ? createElement(SubGlyph, { size: 16, strokeWidth: 1.75, color: selected?.color, "aria-hidden": true }) : <b style={{ color: selected?.color }}>{sub.name.charAt(0)}</b>}
         </span>
         {isRenaming ? (
           <input

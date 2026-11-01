@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-// Police identique à finances 3. next/font l'intègre à la construction : elle marche hors ligne.
-const inter = Inter({
+// Police « Financial Trust » recommandée par ui-ux-pro-max pour la finance.
+// next/font l'intègre à la construction : elle marche hors ligne.
+const plex = IBM_Plex_Sans({
   variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 // Données locales qui changent sans arrêt : jamais de page pré-rendue ni de cache
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${inter.variable} h-full antialiased`}>
+    <html lang="fr" className={`${plex.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

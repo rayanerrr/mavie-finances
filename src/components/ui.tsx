@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 
 export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }), ...init?.headers } });
@@ -35,7 +36,7 @@ export function useResource<T>(url: string, interval = 0) {
 
 export function Notice({ error, children, retry }: { error?: string; children?: ReactNode; retry?: () => void }) {
   if (!error && !children) return null;
-  return <div className="notice" role={error ? "alert" : "status"}><span>{error ? "⚠ " : ""}{error || children}</span>{retry && <button className="btn" onClick={retry}>Réessayer</button>}</div>;
+  return <div className="notice" role={error ? "alert" : "status"}><span className="icon-text">{error ? <TriangleAlert size={15} aria-hidden /> : null}{error || children}</span>{retry && <button className="btn" onClick={retry}>Réessayer</button>}</div>;
 }
 
 export function Dialog({ title, children, onClose, drawer = false }: { title: string; children: ReactNode; onClose: () => void; drawer?: boolean }) {
@@ -76,6 +77,7 @@ export function useChoices() {
 export function StateBar({ value, max, goal = false }: { value: number; max: number; goal?: boolean }) {
   const pct = max > 0 ? value / max * 100 : 0;
   const state = goal ? (pct >= 100 ? "ok" : "neutral") : pct > 100 ? "over" : pct >= 80 ? "warn" : "ok";
-  const label = goal ? (pct >= 100 ? "✓ Objectif atteint" : "Épargne en cours") : state === "over" ? "! Dépassé" : state === "warn" ? "! Attention" : "✓ Bien";
-  return <div><div className="progress" role="meter" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={Math.max(max, value)}><span className={state} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}/></div><p className={`small state-${state}`}>{label} — {pct.toFixed(0)} %</p></div>;
+  const label = goal ? (pct >= 100 ? "Objectif atteint" : "Épargne en cours") : state === "over" ? "Dépassé" : state === "warn" ? "Attention" : "Bien";
+  const StateIcon = state === "ok" ? CircleCheck : state === "neutral" ? null : TriangleAlert;
+  return <div><div className="progress" role="meter" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={Math.max(max, value)}><span className={state} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}/></div><p className={`small state-${state} icon-text`}>{StateIcon && <StateIcon size={13} aria-hidden />}{label} — {pct.toFixed(0)} %</p></div>;
 }
