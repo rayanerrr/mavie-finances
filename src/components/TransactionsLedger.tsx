@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
+import { PencilLine, Receipt, Repeat } from "lucide-react";
 import { CategoryChip } from "@/components/CategoryChip";
 import { MerchantLogo, merchantLabel } from "@/components/MerchantLogo";
 import { formatMoney } from "@/lib/money";
@@ -61,7 +62,7 @@ export function TransactionsLedger({ rows, onSelect }: { rows: TxRow[]; onSelect
             const previous = rows[index - 1];
             const firstOfDay = !previous || previous.date !== tx.date;
             const dayTotal = rows.filter((item) => item.date === tx.date).reduce((sum, item) => sum + (item.type === "income" ? item.amount : -item.amount), 0);
-            const source = tx.source === "receipt" ? "🧾 Reçu" : tx.source === "recurring" ? "↻ Fixe" : "✎ Manuel";
+            const [SourceIcon, source] = tx.source === "receipt" ? [Receipt, "Reçu"] as const : tx.source === "recurring" ? [Repeat, "Fixe"] as const : [PencilLine, "Manuel"] as const;
             return (
               <Fragment key={tx.id}>
                 {firstOfDay && <tr className="day-head-row"><th colSpan={9}><span>{formatShortDate(tx.date)}</span><strong>{dayTotal >= 0 ? "+" : "−"}{formatMoney(Math.abs(dayTotal))}</strong></th></tr>}
@@ -82,7 +83,7 @@ export function TransactionsLedger({ rows, onSelect }: { rows: TxRow[]; onSelect
                 <td>
                   <span className="sub-chip">{tx.subcategoryName ?? ""}</span>
                 </td>
-                <td><span className="source-badge">{source}</span></td>
+                <td><span className="source-badge icon-text"><SourceIcon size={13} aria-hidden />{source}</span></td>
                 <td className={`num ${income ? "amount-pos" : "amount-neg"}`}>
                   {income ? "+" : "-"}
                   {formatMoney(tx.amount)}

@@ -277,7 +277,7 @@ export default function ReceiptDetailPage({ params }: { params: Promise<{ id: st
             <div className={`card ${gap == null ? "" : Math.abs(gap) < 0.01 ? "good" : "warn"}`}>
               <span>Écart</span>
               <strong>{gap == null ? "—" : Math.abs(gap) < 0.01 ? "Aucun" : formatMoney(gap)}</strong>
-              <em>{gap == null ? "Total non lu" : Math.abs(gap) < 0.01 ? "Tout correspond ✓" : "Vérifie un montant ou une ligne"}</em>
+              <em>{gap == null ? "Total non lu" : Math.abs(gap) < 0.01 ? "Tout correspond" : "Vérifie un montant ou une ligne"}</em>
             </div>
           </div>
 
