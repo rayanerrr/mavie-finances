@@ -1,40 +1,68 @@
 import SwiftUI
 import UIKit
 
-// Registre sombre, papier thermique et encre de caisse : DESIGN.md.
+// Même palette que l'app Mac (design-system/mavie) : clair par défaut, sombre automatique.
 enum AppColors {
-    static let ledger = Color(hex: "0d0f13")
-    static let sheet = Color(hex: "14171d")
-    static let sheet2 = Color(hex: "1a1e26")
-    static let well = Color(hex: "0a0c10")
-    static let rule = Color.white.opacity(0.07)
-    static let ruleStrong = Color.white.opacity(0.12)
-    static let ink = Color(hex: "eef1f7")
-    static let ink2 = Color(hex: "c4cad6")
-    static let ink3 = Color(hex: "8b94a8")
-    static let ink4 = Color(hex: "5c6578")
-    static let stamp = Color(hex: "F23645")
+    static let ledger = Color(light: "f1f5f9", dark: "020617")
+    static let sheet = Color(light: "ffffff", dark: "0e1223")
+    static let sheet2 = Color(light: "f8fafc", dark: "151b2e")
+    static let well = Color(light: "ffffff", dark: "0a1022")
+    static let rule = Color(light: "e2e8f0", dark: "1e293b")
+    static let ruleStrong = Color(light: "cbd5e1", dark: "334155")
+    static let ink = Color(light: "0f172a", dark: "f8fafc")
+    static let ink2 = Color(light: "334155", dark: "cbd5e1")
+    static let ink3 = Color(light: "526077", dark: "94a3b8")
+    static let ink4 = Color(light: "94a3b8", dark: "475569")
+    /// Action principale : le bleu du Mac.
+    static let stamp = Color(light: "2563eb", dark: "3b82f6")
     static let stampInk = Color.white
     static let paper = Color(hex: "f4f2ec")
     static let paperInk = Color(hex: "26282d")
-    static let ok = Color(hex: "22c55e")
-    static let warn = Color(hex: "f59e0b")
-    static let over = Color(hex: "ef4444")
+    static let ok = Color(light: "15803d", dark: "22c55e")
+    static let warn = Color(light: "b45309", dark: "f59e0b")
+    static let over = Color(light: "dc2626", dark: "ef4444")
     static let background = ledger
     static let panel = sheet
-    static let red = stamp
+    static let red = over
     static let text = ink
     static let muted = ink3
 }
 
+/// Mode d'affichage choisi dans Réglages (comme sur le Mac).
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .system: return "Auto"
+        case .light: return "Clair"
+        case .dark: return "Sombre"
+        }
+    }
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
 enum Theme {
-    static let controlRadius: CGFloat = 6
-    static let panelRadius: CGFloat = 10
+    static let controlRadius: CGFloat = 10
+    static let panelRadius: CGFloat = 16
     static let dialogRadius: CGFloat = 14
     static let motion = Animation.spring(duration: 0.22, bounce: 0)
 }
 
 extension Color {
+    /// Couleur qui change selon le mode clair ou sombre.
+    init(light: String, dark: String) {
+        self.init(uiColor: UIColor { traits in
+            UIColor(Color(hex: traits.userInterfaceStyle == .dark ? dark : light))
+        })
+    }
+
     init(hex: String) {
         let value = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x6b6a65
         self.init(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
@@ -46,6 +74,7 @@ extension View {
         self.padding(padding).frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.sheet, in: RoundedRectangle(cornerRadius: Theme.panelRadius))
             .overlay(RoundedRectangle(cornerRadius: Theme.panelRadius).strokeBorder(AppColors.rule, lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.05), radius: 10, y: 4)
     }
 
     func ledgerField(focused: Bool = false) -> some View {
@@ -60,7 +89,7 @@ struct HeroAmount: View {
     let value: Double
     @ScaledMetric(relativeTo: .largeTitle) private var size: CGFloat = 44
     var body: some View {
-        Text(money(value)).font(.system(size: size, weight: .semibold)).fontDesign(.serif)
+        Text(money(value)).font(.system(size: size, weight: .bold))
             .tracking(-0.8).monospacedDigit().lineLimit(1).minimumScaleFactor(0.55)
             .accessibilityLabel(money(value))
     }
@@ -148,6 +177,7 @@ struct ReceiptStrip<Content: View>: View {
             .foregroundStyle(AppColors.paperInk).padding(.horizontal, 20).padding(.vertical, 28)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.paper, in: ReceiptEdge())
+            .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
     }
 }
 

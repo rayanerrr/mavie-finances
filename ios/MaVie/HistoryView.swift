@@ -212,7 +212,7 @@ private struct SentReceiptPage: View {
                     }.frame(maxWidth: .infinity, maxHeight: .infinity).background(AppColors.ledger)
                         .navigationTitle("Page \(page + 1) sur \(count)").navigationBarTitleDisplayMode(.inline)
                         .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Fermer") { expanded = false }.frame(minHeight: 44) } }
-                }.preferredColorScheme(.dark)
+                }
             }
     }
 }

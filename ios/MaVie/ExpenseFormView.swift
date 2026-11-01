@@ -65,7 +65,7 @@ struct ExpenseFormView: View {
                     do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
                     amountFocused = true
                 }
-        }.preferredColorScheme(.dark)
+        }
     }
 
     private var amountCard: some View {
