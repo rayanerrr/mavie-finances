@@ -117,7 +117,7 @@ async function poll() {
 }
 function polling() { if (!smoke) { poll().catch(log); timer = setInterval(() => poll().catch(log), 20000); } }
 function createWindow() {
-  nativeTheme.themeSource = 'dark';
+  nativeTheme.themeSource = 'system';
   window = new BrowserWindow({ width: 1440, height: 920, minWidth: 1100, minHeight: 720, show: !smoke,
     title: 'MaVie', backgroundColor: '#0d0f13',
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, paintWhenInitiallyHidden: true, backgroundThrottling: !smoke } });
@@ -176,6 +176,8 @@ else {
   app.on('window-all-closed', () => app.quit());
   app.whenReady().then(async () => {
     fs.mkdirSync(app.getPath('userData'), { recursive: true });
+    // Mode d'affichage choisi dans l'app : la barre de titre macOS suit.
+    ipcMain.handle('mavie:theme', (_event, mode) => { if (['light', 'dark', 'system'].includes(mode)) nativeTheme.themeSource = mode; });
     for (const [channel, receipts] of [['mavie:receipts', true], ['mavie:data', false]]) ipcMain.handle(channel, event => {
       if (event.sender !== window?.webContents || event.senderFrame !== window.webContents.mainFrame || !local(event.senderFrame.url)) throw new Error('Origine non autorisée');
       return openFolder(receipts);
