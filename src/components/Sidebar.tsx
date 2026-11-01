@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -73,11 +74,8 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden>
-            <path d="M6 3h9l4 4v14H6z" opacity="0.9" />
-            <path d="M9 12h6M9 16h4" stroke="#1d4ed8" strokeWidth="1.6" />
-          </svg>
+        <div className="brand-mark brand-logo-tile">
+          <Image src="/logo.svg" alt="Logo TWR" width={30} height={21} priority />
         </div>
         <div>
           <strong>MaVie</strong>
