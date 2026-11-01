@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MonthSummary } from "@/components/MonthSummary";
+import { PendingReceiptsBlock, SidePanel, UpcomingFixedBlock } from "@/components/SidePanel";
 import { DonutChart, EvolutionChart, SubcategoryBars } from "@/components/charts";
 import {
   IconArrowDown,
@@ -353,9 +354,17 @@ export function DashboardHome() {
         </section>
       </div>
 
-      <aside className="dash-side">
-        <ReceiptScanCard onImported={refreshAll} />
-
+      <SidePanel
+        defaultOrder={["add", "favorites", "breakdown", "advice", "fixed", "receipts"]}
+        defaultHidden={["fixed", "receipts"]}
+        defaultFavorites={["/transactions", "/depenses-fixes", "/budgets"]}
+        blocks={[
+          { id: "add", title: "Ajouter un achat", render: () => <ReceiptScanCard onImported={refreshAll} /> },
+          { id: "favorites", title: "Favoris", render: () => null },
+          {
+            id: "breakdown",
+            title: "Répartition détaillée",
+            render: () => (
         <section className="card">
           <div className="card-head">
             <h2 className="card-title">Répartition détaillée</h2>
@@ -380,7 +389,12 @@ export function DashboardHome() {
             <p className="empty">Rien à afficher.</p>
           )}
         </section>
-
+            ),
+          },
+          {
+            id: "advice",
+            title: "Aperçus & Conseils",
+            render: () => (
         <section className="card">
           <h2 className="card-title">Aperçus &amp; Conseils</h2>
           <ul className="advice">
@@ -398,7 +412,12 @@ export function DashboardHome() {
             ))}
           </ul>
         </section>
-      </aside>
+            ),
+          },
+          { id: "fixed", title: "Prochaines dépenses fixes", render: () => <UpcomingFixedBlock month={month} /> },
+          { id: "receipts", title: "Reçus à vérifier", render: () => <PendingReceiptsBlock /> },
+        ]}
+      />
     </div>
   );
 }
