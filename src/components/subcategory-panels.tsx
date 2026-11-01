@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, createElement } from "react";
 import { DonutChart, EvolutionChart } from "@/components/charts";
 import { MerchantLogo } from "@/components/MerchantLogo";
 import { formatMoney, monthName } from "@/lib/money";
@@ -32,10 +32,10 @@ const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const PERSON_LABEL: Record<string, string> = { moi: "Moi", femme: "Ma femme", fils: "Mon fils", nous: "Nous" };
 
 export function SubIcon({ name, size = 30 }: { name: string | null; size?: number }) {
-  const emoji = name ? subcategoryIcon(name) : null;
+  const Glyph = name ? subcategoryIcon(name) : null;
   return (
     <span className="sx-subicon" style={{ width: size, height: size, fontSize: size * 0.55 }}>
-      {emoji ?? (name ? name.charAt(0) : "•")}
+      {Glyph ? createElement(Glyph, { size: Math.round(size * 0.55), strokeWidth: 1.75, "aria-hidden": true }) : name ? name.charAt(0) : "•"}
     </span>
   );
 }

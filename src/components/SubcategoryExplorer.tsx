@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- chargement des données au montage */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, createElement } from "react";
 import {
   CategoryIcon,
   IconArrowUpRight,
@@ -92,11 +92,10 @@ function useClickAway(onAway: () => void) {
 }
 
 function Banner({ data }: { data: Data }) {
-  const emojis = data.subcategories
+  const glyphs = data.subcategories
     .map((s) => subcategoryIcon(s.name))
-    .filter((e): e is string => !!e)
+    .filter((g): g is NonNullable<typeof g> => !!g)
     .slice(0, 8);
-  const fallback = emojis.length ? emojis : ["•"];
   return (
     <div
       className="sx-banner"
@@ -105,7 +104,7 @@ function Banner({ data }: { data: Data }) {
     >
       {Array.from({ length: 10 }, (_, i) => (
         <span key={i} style={{ left: `${8 + i * 9.5}%`, top: `${i % 2 ? 52 : 14}%`, transform: `rotate(${(i % 3) * 12 - 12}deg)` }}>
-          {fallback[i % fallback.length]}
+          {glyphs.length ? createElement(glyphs[i % glyphs.length], { size: 26, strokeWidth: 1.5, "aria-hidden": true }) : "•"}
         </span>
       ))}
     </div>
